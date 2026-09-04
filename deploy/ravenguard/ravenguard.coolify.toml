@@ -1,6 +1,6 @@
-# RavenGuard proxy in front of Quad4 Forge
-# https://github.com/Quad4-Software/ravenguard
-# Mode: proxy (not hub). Upstream: forge:3000
+# RavenGuard proxy for Coolify (behind Coolify Traefik)
+# Domain/URL magic vars belong on the ravenguard service only.
+# Upstream: forge:3000 (private HTTP)
 
 [listen]
 http = ":8080"
@@ -22,10 +22,9 @@ path = "/api/healthz"
 interval = "10s"
 timeout = "3s"
 
-# Local compose: RavenGuard is the public edge. Coolify uses ravenguard.coolify.toml.
 [trust]
-mode = "edge"
-trusted_proxies = []
+mode = "behind_proxy"
+trusted_proxies = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "fc00::/7", "::1/128"]
 real_ip_header = "X-Real-IP"
 proto_header = "X-Forwarded-Proto"
 proxy_protocol = false
@@ -51,7 +50,6 @@ burst = 90
 per_path = false
 challenge_over = true
 
-# Git HTTP / LFS need larger bodies than a typical website WAF default.
 [protect]
 enabled = true
 max_body_bytes = 104857600
@@ -98,7 +96,6 @@ difficulty = 16
 env_probe = "on"
 cookie_name = "rg_clear"
 cookie_ttl = "24h"
-# Overridden by RG_CHALLENGE_SECRET (min 16 chars)
 secret = "replace-me-rg-challenge"
 path_prefix = "/_rg"
 

@@ -26,15 +26,29 @@ DevOps platform features
   Optional external Sentry/GlitchTip DSN via [sentry] (not shipped in compose)
 
 Compose
-  docker-compose.yml           hardened stack: RavenGuard proxy -> forge + postgres + redis
-  docker-compose.coolify.yml   Coolify-ready (domain on ravenguard:8080)
-  deploy/ravenguard/           proxy config, blocklists, seccomp
+  docker-compose.yml           hardened stack: RavenGuard edge -> forge + postgres + Valkey
+  docker-compose.coolify.yml   Coolify: SERVICE_URL_* only on ravenguard:8080
+  deploy/ravenguard/           ravenguard.toml (local edge), ravenguard.coolify.toml (behind Coolify)
   .env.example                 copy to .env
-  Hardening: no-new-privileges, cap_drop ALL, non-root users, healthchecks, resource limits
-  RavenGuard: https://github.com/Quad4-Software/ravenguard (proxy mode, not hub)
+  Valkey: cache/session/queue via redis://valkey:6379 (Redis-protocol compatible)
+  Hardening: no-new-privileges, cap_drop ALL (postgres gets minimal cap_add), healthchecks
+  RavenGuard: https://github.com/Quad4-Software/ravenguard (standalone edge, not hub proxy mode)
+  Coolify: assign domain to ravenguard only. Forge ROOT_URL reuses SERVICE_URL_RAVENGUARD_8080.
+
+DevOps companions (optional next)
+  Prefer behind RavenGuard or private network. Catalog: https://selfh.st/apps/
+  CI: Forgejo Actions runner, or Woodpecker CI
+  Registry: Zot (light OCI) or Harbor (full featured)
+  Objects/LFS: Garage or SeaweedFS (S3-compatible; avoid unmaintained MinIO)
+  Secrets: OpenBao or Infisical
+  Auth: Authentik or Keycloak (OIDC into Forge)
+  Observability: Prometheus + Grafana (Forge metrics already optional)
+  Deps: Renovate bot against the forge
+  Status: Uptime Kuma
+  See also sovereign CI notes: Forgejo + Woodpecker + Zot
 
 Images
-  Dockerfile.rootless          multi-stage, digest-pinned bases, USER 1000, HEALTHCHECK
+  Dockerfile / Dockerfile.rootless  OCI labels (title, source, revision, created, base)
   GHCR ghcr.io/quad4-software/forge:dev|latest
        ghcr.io/quad4-software/forge-rootless:dev|latest
 

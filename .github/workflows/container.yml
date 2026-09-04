@@ -111,5 +111,8 @@ jobs:
           cache-to: type=gha,mode=max,scope=quad4-${{ matrix.file }}
           build-args: |
             RELEASE_VERSION=${{ steps.ver.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
+            VCS_URL=https://github.com/${{ github.repository }}
           provenance: true
           sbom: true

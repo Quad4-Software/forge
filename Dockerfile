@@ -57,16 +57,23 @@ RUN chmod 644 /go/src/forgejo.org/contrib/autocompletion/bash_autocomplete
 
 FROM data.forgejo.org/oci/alpine:3.24
 ARG RELEASE_VERSION
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
+ARG VCS_URL=https://github.com/Quad4-Software/forge
 LABEL maintainer="Quad4 Software" \
+      org.opencontainers.image.title="Quad4 Forge" \
+      org.opencontainers.image.description="Quad4 Forge is a self-hosted charcoal-dark software forge." \
       org.opencontainers.image.authors="Quad4 Software" \
-      org.opencontainers.image.url="https://github.com/Quad4-Software/forge" \
-      org.opencontainers.image.documentation="https://github.com/Quad4-Software/forge" \
-      org.opencontainers.image.source="https://github.com/Quad4-Software/forge" \
-      org.opencontainers.image.version="${RELEASE_VERSION}" \
       org.opencontainers.image.vendor="Quad4 Software" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
-      org.opencontainers.image.title="Quad4 Forge" \
-      org.opencontainers.image.description="Quad4 Forge is a self-hosted charcoal-dark software forge."
+      org.opencontainers.image.url="${VCS_URL}" \
+      org.opencontainers.image.documentation="${VCS_URL}" \
+      org.opencontainers.image.source="${VCS_URL}" \
+      org.opencontainers.image.version="${RELEASE_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.ref.name="${RELEASE_VERSION}" \
+      org.opencontainers.image.base.name="data.forgejo.org/oci/alpine:3.24"
 
 EXPOSE 22 3000
 

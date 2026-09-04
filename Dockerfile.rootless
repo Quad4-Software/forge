@@ -52,16 +52,24 @@ RUN chmod 755 /tmp/local/usr/local/bin/docker-entrypoint.sh \
 FROM ${ALPINE_IMAGE}
 
 ARG RELEASE_VERSION=dev
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
+ARG VCS_URL=https://github.com/Quad4-Software/forge
+ARG ALPINE_IMAGE=docker.io/library/alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 LABEL maintainer="Quad4 Software" \
+      org.opencontainers.image.title="Quad4 Forge (rootless)" \
+      org.opencontainers.image.description="Quad4 Forge is a self-hosted charcoal-dark software forge." \
       org.opencontainers.image.authors="Quad4 Software" \
-      org.opencontainers.image.url="https://github.com/Quad4-Software/forge" \
-      org.opencontainers.image.documentation="https://github.com/Quad4-Software/forge" \
-      org.opencontainers.image.source="https://github.com/Quad4-Software/forge" \
-      org.opencontainers.image.version="${RELEASE_VERSION}" \
       org.opencontainers.image.vendor="Quad4 Software" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
-      org.opencontainers.image.title="Quad4 Forge (rootless)" \
-      org.opencontainers.image.description="Quad4 Forge is a self-hosted charcoal-dark software forge."
+      org.opencontainers.image.url="${VCS_URL}" \
+      org.opencontainers.image.documentation="${VCS_URL}" \
+      org.opencontainers.image.source="${VCS_URL}" \
+      org.opencontainers.image.version="${RELEASE_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.ref.name="${RELEASE_VERSION}" \
+      org.opencontainers.image.base.name="${ALPINE_IMAGE}"
 
 EXPOSE 2222 3000
 
