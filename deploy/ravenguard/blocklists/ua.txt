@@ -1,0 +1,102 @@
+# Substrings matched case-insensitively against User-Agent
+# Hard-block list (separate from soft detect scoring)
+# Updated from public AI crawler and scraper research (2026)
+
+# Security scanners and exploit tools
+sqlmap
+nikto
+masscan
+zgrab
+nuclei
+dirbuster
+gobuster
+wfuzz
+ffuf
+
+# Headless and automation clients
+HeadlessChrome
+PhantomJS
+puppeteer
+playwright
+selenium
+chromedriver
+botasaurus
+nodriver
+zendriver
+camoufox
+seleniumbase
+undetected_chromedriver
+skyvern
+browserless
+
+# HTTP library scrapers (non-browser)
+python-requests
+python-urllib
+aiohttp
+scrapy
+crawl4ai
+firecrawl
+browser-use
+langchain
+crewai
+openai-agents
+
+# Forum spam and bulk poster tools
+xrumer
+Scrapebox
+GSA SER
+Senukai
+Magic Submitter
+
+# OpenAI
+GPTBot
+ChatGPT-User
+OAI-SearchBot
+ChatGPT-Atlas
+
+# Anthropic
+ClaudeBot
+Claude-User
+Claude-SearchBot
+Claude-Code
+anthropic-ai
+
+# Perplexity
+PerplexityBot
+Perplexity-User
+
+# Google AI (not Googlebot search)
+Google-Extended
+Google-Agent
+Google-CloudVertexBot
+GoogleAgent-Mariner
+GoogleOther
+NotebookLM
+Gemini-Deep-Research
+
+# Meta AI training / fetch (not Facebook link-preview bots)
+meta-externalagent
+meta-externalfetcher
+
+# Apple Intelligence training token (not Applebot search)
+Applebot-Extended
+
+# Other AI training / answer / data crawlers
+Bytespider
+CCBot
+Amazonbot
+cohere-ai
+AI2Bot
+Diffbot
+YouBot
+omgili
+ImagesiftBot
+MistralAI-User
+DuckAssistBot
+Timpibot
+PanguBot
+webzio
+DeepSeekBot
+QwenBot
+iaskspider
+PhindBot

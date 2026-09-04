@@ -1,0 +1,151 @@
+# RavenGuard proxy in front of Quad4 Forge
+# https://github.com/Quad4-Software/ravenguard
+# Mode: proxy (not hub). Upstream: forge:3000
+
+[listen]
+http = ":8080"
+
+[tls]
+mode = "off"
+
+[upstream]
+url = "http://forge:3000"
+connect_timeout = "5s"
+response_header_timeout = "120s"
+idle_conn_timeout = "90s"
+max_idle_conns = 1024
+max_idle_conns_per_host = 256
+
+[upstream.health]
+enabled = true
+path = "/api/healthz"
+interval = "10s"
+timeout = "3s"
+
+# Coolify / external reverse proxy in front. For bare edge, set mode = "edge".
+[trust]
+mode = "behind_proxy"
+trusted_proxies = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "fc00::/7", "::1/128"]
+real_ip_header = "X-Real-IP"
+proto_header = "X-Forwarded-Proto"
+proxy_protocol = false
+
+[blocklists]
+ip_files = ["/blocklists/ips.txt"]
+dns_files = ["/blocklists/domains.txt"]
+ua_files = ["/blocklists/ua.txt"]
+reload_interval = "30s"
+
+[allowlists]
+reload_interval = "30s"
+
+[qfeeds]
+enabled = false
+on_error = "fail_open"
+
+[ratelimit]
+enabled = true
+requests = 180
+window = "1m"
+burst = 90
+per_path = false
+challenge_over = true
+
+# Git HTTP / LFS need larger bodies than a typical website WAF default.
+[protect]
+enabled = true
+max_body_bytes = 104857600
+max_header_bytes = 32768
+max_url_bytes = 16384
+max_concurrent_global = 8192
+max_concurrent_per_client = 48
+ban_after_strikes = 8
+ban_ttl = "10m"
+attack_block = true
+attack_score = 90
+write_method_cost = 2
+
+[detect]
+enabled = true
+challenge_score = 45
+block_score = 90
+missing_ua_score = 20
+scanner_ua_score = 50
+ai_ua_score = 55
+probe_path_score = 40
+odd_method_score = 25
+missing_accept_score = 8
+missing_accept_lang_score = 10
+missing_sec_fetch_score = 15
+high_404_threshold = 30
+high_404_window = "1m"
+high_404_action = "challenge"
+behavior_window = "1m"
+behavior_burst_limit = 80
+behavior_burst_score = 30
+behavior_path_fanout = 50
+behavior_path_fanout_score = 25
+forge_expensive_score = 35
+behavior_forge_burst_limit = 40
+behavior_forge_burst_score = 30
+forge_rate_cost = 3
+
+[challenge]
+enabled = true
+mode = "detect"
+algorithm = "adaptive"
+difficulty = 16
+env_probe = "on"
+cookie_name = "rg_clear"
+cookie_ttl = "24h"
+# Overridden by RG_CHALLENGE_SECRET (min 16 chars)
+secret = "replace-me-rg-challenge"
+path_prefix = "/_rg"
+
+[challenge.captcha]
+enabled = false
+
+[privacy]
+hash_client_ip = true
+log_ip = "hash"
+retention = "30m"
+
+[ui]
+brand = "Quad4 Forge"
+status_text = "Checking your browser before accessing Quad4 Forge."
+test_mode = false
+
+[site]
+description = "Quad4 Forge"
+theme_color = "#050505"
+robots = "noindex, nofollow"
+lang = "en"
+
+[logging]
+level = "info"
+format = "json"
+
+[sentry]
+enabled = false
+sample_rate = 1.0
+traces_sample_rate = 0.0
+attach_stacktrace = true
+send_default_pii = false
+capture_upstream_errors = false
+flush_timeout = "2s"
+
+[sandbox]
+mode = "best_effort"
+
+[sandbox.landlock]
+restrict_net = true
+restrict_scoped = true
+ignore_missing = true
+ro_dirs = ["/config", "/blocklists", "/etc/ssl/certs"]
+rw_dirs = ["/tmp"]
+
+[sandbox.seccomp]
+deny_action = "errno"
+
+[admin]
+enabled = false

@@ -1,9 +1,10 @@
-# Coolify-ready Quad4 Forge (hardened)
+# Coolify-ready Quad4 Forge + RavenGuard proxy (hardened)
 # Docs: https://coolify.io/docs/knowledge-base/docker/compose
+# RavenGuard: https://github.com/Quad4-Software/ravenguard
 #
-# Assign a domain to service "forge" (container port 3000).
-# Required: FORGE_DB_PASSWORD, ALTCHA_HMAC_KEY
-# ALTCHA is embedded in Forge (no separate captcha container).
+# Assign a domain to service "ravenguard" (container port 8080).
+# Forge HTTP stays private; SSH may use host port mapping.
+# Required: FORGE_DB_PASSWORD, ALTCHA_HMAC_KEY, RG_CHALLENGE_SECRET
 
 name: quad4-forge
 
@@ -99,11 +100,12 @@ services:
     environment:
       USER_UID: "1000"
       USER_GID: "1000"
-      SERVICE_URL_FORGE_3000: ${SERVICE_URL_FORGE_3000}
+      # Public URL is RavenGuard's Coolify URL
+      SERVICE_URL_RAVENGUARD_8080: ${SERVICE_URL_RAVENGUARD_8080}
       FORGEJO__APP_NAME: ${APP_NAME:-Quad4 Forge}
       FORGEJO__APP_SLOGAN: ${APP_SLOGAN:-Charcoal. Code. Forge.}
-      FORGEJO__server__DOMAIN: ${SERVICE_FQDN_FORGE}
-      FORGEJO__server__ROOT_URL: ${SERVICE_URL_FORGE_3000}
+      FORGEJO__server__DOMAIN: ${SERVICE_FQDN_RAVENGUARD}
+      FORGEJO__server__ROOT_URL: ${SERVICE_URL_RAVENGUARD_8080}
       FORGEJO__server__HTTP_PORT: "3000"
       FORGEJO__server__SSH_PORT: ${SSH_PORT:-2222}
       FORGEJO__server__START_SSH_SERVER: ${START_SSH_SERVER:-false}
@@ -157,3 +159,45 @@ services:
         reservations:
           cpus: "0.25"
           memory: 256M
+
+  ravenguard:
+    image: ${RAVENGUARD_IMAGE:-ghcr.io/quad4-software/ravenguard:edge}
+    restart: unless-stopped
+    user: "65532:65532"
+    <<: *security
+    command: ["proxy", "-config", "/config/ravenguard.toml"]
+    depends_on:
+      forge:
+        condition: service_healthy
+    environment:
+      SERVICE_URL_RAVENGUARD_8080: ${SERVICE_URL_RAVENGUARD_8080}
+      RG_SANDBOX_MODE: ${RG_SANDBOX_MODE:-best_effort}
+      RG_CHALLENGE_SECRET: ${RG_CHALLENGE_SECRET:?}
+      RG_TLS_MODE: "off"
+      RG_ADMIN_ENABLED: "false"
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+    volumes:
+      - type: bind
+        source: ./deploy/ravenguard/ravenguard.toml
+        target: /config/ravenguard.toml
+      - type: bind
+        source: ./deploy/ravenguard/blocklists
+        target: /blocklists
+        is_directory: true
+      - type: bind
+        source: ./deploy/ravenguard/seccomp-ravenguard.json
+        target: /etc/ravenguard/seccomp.json
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./deploy/ravenguard/seccomp-ravenguard.json
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 64M
