@@ -26,6 +26,7 @@ import (
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/process"
 	"forgejo.org/modules/setting"
+	"forgejo.org/modules/systemstatus"
 	"forgejo.org/modules/util"
 
 	"github.com/gliderlabs/ssh"
@@ -294,12 +295,28 @@ func sshConnectionFailed(conn net.Conn, err error) {
 	logger.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 }
 
+type countedSSHConn struct {
+	net.Conn
+	closed sync.Once
+}
+
+func (c *countedSSHConn) Close() error {
+	c.closed.Do(func() {
+		systemstatus.DecSSH()
+	})
+	return c.Conn.Close()
+}
+
 // Listen starts a SSH server listens on given port.
 func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	srv := ssh.Server{
 		Addr:             net.JoinHostPort(host, strconv.Itoa(port)),
 		PublicKeyHandler: publicKeyHandler,
 		Handler:          sessionHandler,
+		ConnCallback: func(_ ssh.Context, conn net.Conn) net.Conn {
+			systemstatus.IncSSH()
+			return &countedSSHConn{Conn: conn}
+		},
 		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
 			config := &gossh.ServerConfig{}
 			config.KeyExchanges = keyExchanges

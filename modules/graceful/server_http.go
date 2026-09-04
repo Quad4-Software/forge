@@ -8,6 +8,8 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+
+	"forgejo.org/modules/systemstatus"
 )
 
 func newHTTPServer(network, address, name string, handler http.Handler) (*Server, ServeFunction) {
@@ -15,6 +17,14 @@ func newHTTPServer(network, address, name string, handler http.Handler) (*Server
 	httpServer := http.Server{
 		Handler:     handler,
 		BaseContext: func(net.Listener) context.Context { return GetManager().HammerContext() },
+		ConnState: func(_ net.Conn, state http.ConnState) {
+			switch state {
+			case http.StateNew:
+				systemstatus.IncHTTP()
+			case http.StateHijacked, http.StateClosed:
+				systemstatus.DecHTTP()
+			}
+		},
 	}
 	// Enable H2C for HTTP server
 	httpServer.Protocols = new(http.Protocols)

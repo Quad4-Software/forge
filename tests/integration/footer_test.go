@@ -26,11 +26,22 @@ func TestFooterContent(t *testing.T) {
 	adminUser := loginUser(t, "user1")
 	regularUser := loginUser(t, "user2")
 
+	t.Run(`Anonymous visitors do not see software fingerprint`, func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		page := NewHTMLParser(t, MakeRequest(t, NewRequest(t, "GET", regularPage), http.StatusOK).Body)
+		footerLeft := page.Find("footer .left-links").Text()
+		assert.NotContains(t, footerLeft, "Powered by Forgejo")
+		assert.NotContains(t, footerLeft, "Version")
+		assert.NotContains(t, footerLeft, "Page:")
+		assert.NotContains(t, footerLeft, "Template:")
+	})
+
 	t.Run(`Default configuration`, func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		// For admins Version dubs as a link to /admin/config, for regular users
-		// it's just text
+		// it's just text. Signed-in users may see the fingerprint.
 		testFooterContent(t, regularUser, regularPage, true, true, false)
 		testFooterContent(t, adminUser, regularPage, true, true, true)
 		testFooterContent(t, adminUser, adminPage, true, true, true)

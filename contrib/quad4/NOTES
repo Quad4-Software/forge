@@ -24,6 +24,8 @@ DevOps platform features
   ALTCHA captcha (embedded in Forge): CAPTCHA_TYPE=altcha
   Docs: https://altcha.org/docs/ https://altcha.org/docs/integration/quick-start/
   Optional external Sentry/GlitchTip DSN via [sentry] (not shipped in compose)
+  Public OSINT hardening: footer Powered by / Version / Page / Template only for
+  signed-in users. GET /api/v1/version requires auth. Anonymous pages stay silent.
 
 Compose
   docker-compose.yml           hardened stack: RavenGuard edge -> forge + postgres + Valkey
