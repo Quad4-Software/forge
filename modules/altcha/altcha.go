@@ -4,11 +4,11 @@
 package altcha
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
+	"forgejo.org/modules/json"
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/setting"
 

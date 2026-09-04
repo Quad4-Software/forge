@@ -4,8 +4,8 @@
 package setting
 
 import (
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 
 	"forgejo.org/modules/log"
@@ -15,13 +15,13 @@ import (
 
 // Sentry settings (GlitchTip-compatible DSN).
 var Sentry = struct {
-	Enabled             bool
-	DSN                 string
-	FrontendDSN         string
-	Environment         string
-	TracesSampleRate    float64
-	SendDefaultPII      bool
-	Debug               bool
+	Enabled          bool
+	DSN              string
+	FrontendDSN      string
+	Environment      string
+	TracesSampleRate float64
+	SendDefaultPII   bool
+	Debug            bool
 }{}
 
 func loadSentryFrom(rootCfg ConfigProvider) {

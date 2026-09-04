@@ -8,7 +8,6 @@ package templates
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -19,6 +18,7 @@ import (
 
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/base"
+	"forgejo.org/modules/json"
 	"forgejo.org/modules/markup"
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/svg"
@@ -128,9 +128,7 @@ func NewFuncMap() template.FuncMap {
 			b, _ := json.Marshal(setting.FrontendDSNOrEmpty())
 			return template.JS(b)
 		},
-		"SentryFrontendDSNRaw": func() string {
-			return setting.FrontendDSNOrEmpty()
-		},
+		"SentryFrontendDSNRaw": setting.FrontendDSNOrEmpty,
 		"SentryEnvironment": func() template.JS {
 			b, _ := json.Marshal(setting.Sentry.Environment)
 			return template.JS(b)
