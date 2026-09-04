@@ -3,6 +3,7 @@
 #
 # Topology: Client -> RavenGuard (:8080) -> forge (:3000)
 # ALTCHA is embedded in Forge. RavenGuard runs in proxy mode (not hub).
+# Cache/session/queue: Valkey (Redis-protocol compatible).
 #
 #   cp .env.example .env
 #   docker compose up -d
@@ -34,11 +35,11 @@ x-forge-env: &forge-env
   FORGEJO__database__USER: ${FORGE_DB_USER:-forgejo}
   FORGEJO__database__PASSWD: ${FORGE_DB_PASSWORD:?}
   FORGEJO__cache__ADAPTER: redis
-  FORGEJO__cache__HOST: redis://redis:6379/0
+  FORGEJO__cache__HOST: redis://valkey:6379/0
   FORGEJO__session__PROVIDER: redis
-  FORGEJO__session__PROVIDER_CONFIG: redis://redis:6379/1
+  FORGEJO__session__PROVIDER_CONFIG: redis://valkey:6379/1
   FORGEJO__queue__TYPE: redis
-  FORGEJO__queue__CONN_STR: redis://redis:6379/2
+  FORGEJO__queue__CONN_STR: redis://valkey:6379/2
   FORGEJO__metrics__ENABLED: ${METRICS_ENABLED:-true}
   FORGEJO__service__ENABLE_CAPTCHA: "true"
   FORGEJO__service__CAPTCHA_TYPE: altcha
@@ -59,6 +60,13 @@ services:
     restart: unless-stopped
     <<: *security
     read_only: false
+    # Postgres entrypoint needs these to init data dir and socket dir.
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
     environment:
       POSTGRES_DB: ${FORGE_DB_NAME:-forgejo}
       POSTGRES_USER: ${FORGE_DB_USER:-forgejo}
@@ -67,7 +75,7 @@ services:
       - forge-db:/var/lib/postgresql/data
     tmpfs:
       - /tmp:size=64m,mode=1777
-      - /run/postgresql:size=16m,mode=0755
+      - /run/postgresql:size=16m,mode=0775,uid=70,gid=70
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
@@ -83,13 +91,13 @@ services:
           cpus: "0.10"
           memory: 128M
 
-  redis:
-    image: docker.io/library/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+  valkey:
+    image: docker.io/valkey/valkey:8-alpine@sha256:cfb2aa4c8352930130fd45eb231a57310ac326d7323edae12b384b9270c46dda
     restart: unless-stopped
-    user: "999:999"
+    user: "999:1000"
     <<: *security
     command:
-      - redis-server
+      - valkey-server
       - --save
       - "60"
       - "1"
@@ -100,11 +108,11 @@ services:
       - --bind
       - "0.0.0.0"
     volumes:
-      - forge-redis:/data
+      - forge-valkey:/data
     tmpfs:
       - /tmp:size=16m,mode=1777
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -132,7 +140,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
+      valkey:
         condition: service_healthy
     environment:
       <<: *forge-env
@@ -166,7 +174,8 @@ services:
     restart: unless-stopped
     user: "65532:65532"
     <<: *security
-    command: ["proxy", "-config", "/config/ravenguard.toml"]
+    # Default mode is "all" (standalone edge). Do not use "proxy" (hub-agent fleet mode).
+    command: ["-config", "/config/ravenguard.toml"]
     depends_on:
       forge:
         condition: service_healthy
@@ -180,15 +189,13 @@ services:
     volumes:
       - ./deploy/ravenguard/ravenguard.toml:/config/ravenguard.toml:ro
       - ./deploy/ravenguard/blocklists:/blocklists:ro
-      - ./deploy/ravenguard/seccomp-ravenguard.json:/etc/ravenguard/seccomp.json:ro
     tmpfs:
       - /tmp:size=64m,mode=1777
-    security_opt:
-      - no-new-privileges:true
-      - seccomp=./deploy/ravenguard/seccomp-ravenguard.json
+      - /data:size=32m,mode=1777
     ports:
       - "${HTTP_PORT:-8080}:8080"
-    # Distroless image has no shell/curl; upstream health is checked by RavenGuard itself.
+    # Distroless image has no shell/curl. Sandbox is RavenGuard landlock+seccomp (RG_SANDBOX_MODE).
+    # Do not stack an extra Docker seccomp profile on hardened hosts (can SIGSEGV).
     deploy:
       resources:
         limits:
@@ -201,4 +208,4 @@ services:
 volumes:
   forge-data:
   forge-db:
-  forge-redis:
+  forge-valkey:

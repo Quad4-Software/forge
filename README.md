@@ -1,46 +1,72 @@
 <div align="center">
-    <img src="./assets/logo.svg" alt="" width="192" align="center" />
-    <h1 align="center">Welcome to Forgejo</h1>
+    <img src="./assets/logo.svg" alt="Quad4 Forge" width="192" align="center" />
+    <h1 align="center">Quad4 Forge</h1>
+    <p align="center">Charcoal. Code. Forge.</p>
 </div>
 
-Hi there! Tired of big platforms playing monopoly?
-Providing Git hosting for your project, friends, company or community?
-**Forgejo** (/for'd&#865;ʒe.jo/ inspired by forĝejo – the Esperanto word for *forge*) has you covered with its intuitive interface,
-light and easy hosting and a lot of built-in functionality.
+**Quad4 Forge** is a fork of [Forgejo](https://forgejo.org/) for self-hosted Git and devops, with Quad4 branding, a charcoal/ember dark theme, embedded [ALTCHA](https://altcha.org/), optional Sentry/GlitchTip DSN hooks, and a hardened Docker stack fronted by [RavenGuard](https://github.com/Quad4-Software/ravenguard).
 
-Forgejo was [created in 2022](https://forgejo.org/2022-12-15-hello-forgejo/)
-because we think that the project should be owned by an independent community.
-If you second that, then Forgejo is for you!
-Our promise: **Independent Free/Libre Software forever!**
+Upstream Forgejo remains free software under GPLv3+. This fork tracks Forgejo and adds Quad4 packaging, theme, and deploy defaults.
 
-## What does Forgejo offer?
+## Quick start (Compose)
 
-If you like any of the following, Forgejo is literally meant for you:
+```bash
+cp .env.example .env
+# set FORGE_DB_PASSWORD, ALTCHA_HMAC_KEY, RG_CHALLENGE_SECRET (min 16 chars)
+docker compose up -d --build
+curl -fsS http://localhost:8080/api/healthz
+```
 
-- Lightweight: Forgejo can easily be hosted on nearly **every machine**.
-  Running on a Raspberry? Small cloud instance? No problem!
-- Project management: Besides Git hosting, Forgejo offers issues,
-  pull requests, wikis, kanban boards and much more to **coordinate with your team**.
-- Publishing: Have something to share? Use **releases** to host your software for download,
-  or use the **package registry** to publish it for docker, npm and many other package managers.
-- Customizable: Want to change your look? Change some settings?
-  There are many **config switches** to make Forgejo work exactly like you want.
-- Powerful: Organizations & team permissions, CI integration, Code Search, LDAP, OAuth and much more.
-  If you have **advanced needs**, Forgejo has you covered.
-- Privacy: From update checker to default settings: Forgejo is built to be **privacy first** for you and your crew.
-- Federation: (WIP) We are actively working to connect software forges with each other through **ActivityPub**,
-  and create a collaborative network of personal instances.
+Topology: `Client -> RavenGuard (:8080) -> forge (:3000)`. SSH stays on forge (`:2222` by default). Forge HTTP is not published on the host.
 
-## Learn more
+| File | Role |
+|------|------|
+| `docker-compose.yml` | Local hardened stack (postgres + Valkey + forge + RavenGuard) |
+| `docker-compose.coolify.yml` | Coolify deploy (domain on RavenGuard only) |
+| `.env.example` | Required env template |
+| `deploy/ravenguard/` | Proxy config, blocklists, seccomp |
+| `Dockerfile.rootless` | Multi-stage rootless image (UID 1000) |
 
-Dive into the [documentation](https://forgejo.org/docs/latest/), subscribe to releases and blog post on [our website](https://forgejo.org), <a href="https://floss.social/@forgejo" rel="me">find us on the Fediverse</a> or hop into [our Matrix room](https://matrix.to/#/#forgejo-chat:matrix.org) if you have any questions or want to get involved.
+Valkey serves Forge cache, sessions, and queues over the Redis protocol (`redis://valkey:6379/...`).
+
+Images: `ghcr.io/quad4-software/forge-rootless:dev|latest`, `ghcr.io/quad4-software/ravenguard:edge`.
+
+## Coolify
+
+Coolify can attach one public HTTP domain/port to a compose service. Assign the domain to **ravenguard** (container port **8080**) via `SERVICE_URL_RAVENGUARD_8080`. Do not put Coolify URL magic on `forge`.
+
+Forge still reads `SERVICE_URL_RAVENGUARD_8080` / `SERVICE_FQDN_RAVENGUARD` for `ROOT_URL` and `DOMAIN` so generated links match the public edge URL. Forge HTTP stays on the internal network. SSH can use an optional host port.
+
+Use `docker-compose.coolify.yml` and `deploy/ravenguard/ravenguard.coolify.toml` (`trust.mode = behind_proxy`).
+
+## Fork layout
+
+| Remote / branch | Purpose |
+|-----------------|---------|
+| `origin` | `git@github.com:Quad4-Software/forge.git` |
+| `upstream` | Forgejo (fetch only) |
+| `master` | Quad4 customizations (default) |
+| `forgejo` | Clean upstream tip |
+
+Sync: `contrib/quad4/sync-upstream.sh` or the weekly `sync-upstream` workflow.
+
+Branding: theme `quad4-dark` (`web_src/css/themes/theme-quad4-dark.css`), logo masters under `contrib/quad4/brand/`, rebuild with `contrib/quad4/rebuild-brand.sh`. See `contrib/quad4/NOTES`.
+
+## Features beyond stock Forgejo
+
+- **Theme**: charcoal + ember orange, default `quad4-dark`
+- **ALTCHA**: `CAPTCHA_TYPE=altcha`, embedded challenge at `/altcha/challenge`
+- **Sentry**: optional `[sentry]` DSN / frontend DSN (no GlitchTip in compose)
+- **Edge**: RavenGuard standalone edge (not hub `proxy` mode), forge-tuned body limits for Git HTTP/LFS
+- **Cache**: Valkey for Forge cache, sessions, and queues (`redis://valkey:6379`)
+- **Hardening**: `no-new-privileges`, `cap_drop: ALL`, non-root users, healthchecks, resource limits
+
+## Upstream Forgejo
+
+Forgejo (/for'dʒe.jo/) is an independent community forge. Docs: [forgejo.org/docs](https://forgejo.org/docs/latest/). Matrix: [#forgejo-chat:matrix.org](https://matrix.to/#/#forgejo-chat:matrix.org).
 
 ## License
 
-Forgejo is distributed under the terms of the [GPL version 3.0](LICENSE) or any later version.
+Distributed under the [GPL version 3.0](LICENSE) or any later version, same as Forgejo v9+. Pre-v9 Forgejo was MIT. Keep fork changes GPLv3+ compatible.
 
-The agreement for this license [was documented in June 2023](https://codeberg.org/forgejo/governance/pulls/24) and implemented during the development of Forgejo v9.0. All Forgejo versions before v9.0 are distributed under the MIT license.
-
-## Get involved
-
-If you are interested in making Forgejo better, either by reporting a bug or by changing the governance, please [take a look at the contribution guide](CONTRIBUTING.md).
+Contribution guide for upstream Forgejo: [CONTRIBUTING.md](CONTRIBUTING.md).
