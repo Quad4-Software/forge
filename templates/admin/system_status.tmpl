@@ -1,6 +1,29 @@
 <dl class="admin-dl-horizontal">
 	<dt>{{ctx.Locale.Tr "admin.system_status.server_uptime"}}</dt>
 	<dd><relative-time format="duration" datetime="{{.SysStatus.StartTime}}">{{.SysStatus.StartTime}}</relative-time></dd>
+	<dt>{{ctx.Locale.Tr "admin.system_status.load_average"}}</dt>
+	<dd>{{.SysStatus.LoadAverage}}</dd>
+	<dt>{{ctx.Locale.Tr "admin.system_status.cpu_percent"}}</dt>
+	<dd>{{.SysStatus.CPUPercent}}</dd>
+	{{if .SysStatus.HasHostMem}}
+		<dt>{{ctx.Locale.Tr "admin.system_status.host_memory"}}</dt>
+		<dd>{{ctx.Locale.TrSize .SysStatus.HostMemUsed}} / {{ctx.Locale.TrSize .SysStatus.HostMemTotal}} ({{.SysStatus.MemPercent}})</dd>
+	{{else}}
+		<dt>{{ctx.Locale.Tr "admin.system_status.host_memory"}}</dt>
+		<dd>{{.SysStatus.MemPercent}}</dd>
+	{{end}}
+	{{if .SysStatus.HasRSS}}
+		<dt>{{ctx.Locale.Tr "admin.system_status.process_rss"}}</dt>
+		<dd>{{ctx.Locale.TrSize .SysStatus.ProcessRSS}}</dd>
+	{{end}}
+	<dt>{{ctx.Locale.Tr "admin.system_status.http_clients"}}</dt>
+	<dd>{{.SysStatus.HTTPClients}}</dd>
+	{{if .SysStatus.SSHEnabled}}
+		<dt>{{ctx.Locale.Tr "admin.system_status.ssh_clients"}}</dt>
+		<dd>{{.SysStatus.SSHClients}}</dd>
+	{{end}}
+	<dt>{{ctx.Locale.Tr "admin.system_status.sessions"}}</dt>
+	<dd>{{.SysStatus.Sessions}}</dd>
 	<dt>{{ctx.Locale.Tr "admin.system_status.current_goroutine"}}</dt>
 	<dd>{{.SysStatus.NumGoroutine}}</dd>
 	<div class="divider"></div>

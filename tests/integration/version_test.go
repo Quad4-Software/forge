@@ -20,9 +20,22 @@ import (
 func TestVersion(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	t.Run("Version", func(t *testing.T) {
+	t.Run("Version requires auth", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 		setting.AppVer = "test-version-1"
+
 		req := NewRequest(t, "GET", "/api/v1/version")
+		MakeRequest(t, req, http.StatusUnauthorized)
+	})
+
+	t.Run("Version with auth", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		setting.AppVer = "test-version-1"
+
+		session := loginUser(t, "user1")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		req := NewRequest(t, "GET", "/api/v1/version").AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var version structs.ServerVersion
@@ -39,18 +52,16 @@ func TestVersion(t *testing.T) {
 		t.Run("Get version without auth", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			// GET api without auth
 			req := NewRequest(t, "GET", "/api/v1/version")
-			MakeRequest(t, req, http.StatusForbidden)
+			MakeRequest(t, req, http.StatusUnauthorized)
 		})
 
-		t.Run("Get version without auth", func(t *testing.T) {
+		t.Run("Get version with auth", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			username := "user1"
 			session := loginUser(t, username)
 			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-			// GET api with auth
 			req := NewRequest(t, "GET", "/api/v1/version").AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 

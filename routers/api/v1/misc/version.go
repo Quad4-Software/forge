@@ -11,7 +11,8 @@ import (
 	"forgejo.org/services/context"
 )
 
-// Version shows the version of the Gitea server
+// Version shows the version of the Gitea server.
+// Requires authentication so anonymous clients cannot fingerprint the instance.
 func Version(ctx *context.APIContext) {
 	// swagger:operation GET /version miscellaneous getVersion
 	// ---
@@ -21,5 +22,7 @@ func Version(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ServerVersion"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
 	ctx.JSON(http.StatusOK, &structs.ServerVersion{Version: setting.AppVer})
 }

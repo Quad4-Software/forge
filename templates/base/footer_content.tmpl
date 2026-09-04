@@ -1,9 +1,9 @@
 <footer class="page-footer" role="group" aria-label="{{ctx.Locale.Tr "aria.footer"}}">
 	<div class="left-links" role="contentinfo" aria-label="{{ctx.Locale.Tr "aria.footer.software"}}">
-		{{if ShowFooterPoweredBy}}
+		{{if and .IsSigned ShowFooterPoweredBy}}
 			<a target="_blank" rel="noopener noreferrer" href="https://forgejo.org">{{ctx.Locale.Tr "powered_by" "Forgejo"}}</a>
 		{{end}}
-		{{if (or .ShowFooterVersion .PageIsAdmin)}}
+		{{if and .IsSigned (or .ShowFooterVersion .PageIsAdmin)}}
 			{{ctx.Locale.Tr "version"}}:
 			{{if .IsAdmin}}
 				<a href="{{AppSubUrl}}/admin/config">{{AppVerNoMetadata}}</a>
@@ -11,7 +11,7 @@
 				{{AppVerNoMetadata}}
 			{{end}}
 		{{end}}
-		{{if and .TemplateLoadTimes ShowFooterTemplateLoadTime}}
+		{{if and .IsSigned .TemplateLoadTimes ShowFooterTemplateLoadTime}}
 			{{ctx.Locale.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong>
 			{{ctx.Locale.Tr "template"}}{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>
 		{{end}}

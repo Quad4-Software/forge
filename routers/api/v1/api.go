@@ -607,9 +607,10 @@ func Routes() *web.Route {
 			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
 		}
 
-		// Misc (public accessible)
+		// Misc (public accessible unless noted)
 		m.Group("", func() {
-			m.Get("/version", misc.Version)
+			// Version is auth-only to avoid public OSINT fingerprinting
+			m.Get("/version", reqToken(), misc.Version)
 			m.Get("/signing-key.gpg", misc.SigningKey)
 			m.Get("/signing-key.ssh", misc.SSHSigningKey)
 			m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)

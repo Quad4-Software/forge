@@ -40,7 +40,7 @@
 					<pre class="tw-whitespace-pre-wrap tw-break-all">{{.ErrorMsg}}</pre>
 				{{end}}
 				<div class="center tw-mt-8">
-					{{if or .SignedUser.IsAdmin .ShowFooterVersion}}<p>{{ctx.Locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+					{{if or .SignedUser.IsAdmin (and .SignedUser .ShowFooterVersion)}}<p>{{ctx.Locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
 					{{if .SignedUser.IsAdmin}}<p>{{ctx.Locale.Tr "error.report_message" "https://codeberg.org/forgejo/forgejo/issues"}}</p>{{end}}
 				</div>
 			</div>

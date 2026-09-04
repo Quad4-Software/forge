@@ -69,7 +69,7 @@ services:
       - --loglevel
       - warning
       - --protected-mode
-      - "yes"
+      - "no"
       - --bind
       - "0.0.0.0"
     volumes:

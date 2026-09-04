@@ -18,6 +18,7 @@ import (
 	"forgejo.org/modules/graceful"
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/setting"
+	"forgejo.org/modules/systemstatus"
 	"forgejo.org/modules/updatechecker"
 	"forgejo.org/modules/web"
 	"forgejo.org/services/context"
@@ -41,6 +42,19 @@ const (
 var sysStatus struct {
 	StartTime    string
 	NumGoroutine int
+
+	LoadAverage  string
+	CPUPercent   string
+	HostMemUsed  int64
+	HostMemTotal int64
+	MemPercent   string
+	HasHostMem   bool
+	ProcessRSS   int64
+	HasRSS       bool
+	HTTPClients  int64
+	SSHClients   int64
+	Sessions     int
+	SSHEnabled   bool
 
 	// General statistics.
 	MemAllocated int64  // bytes allocated and still in use
@@ -79,12 +93,26 @@ var sysStatus struct {
 	NumGC        uint32
 }
 
-func updateSystemStatus() {
+func updateSystemStatus(sessionCount int) {
 	sysStatus.StartTime = setting.AppStartTime.Format(time.RFC3339)
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
 	sysStatus.NumGoroutine = runtime.NumGoroutine()
+
+	host := systemstatus.Collect()
+	sysStatus.LoadAverage = systemstatus.FormatLoad(host)
+	sysStatus.CPUPercent = systemstatus.FormatCPU(host)
+	sysStatus.HostMemUsed = host.MemUsed
+	sysStatus.HostMemTotal = host.MemTotal
+	sysStatus.HasHostMem = host.HasMem
+	sysStatus.MemPercent = systemstatus.FormatMemPercent(host)
+	sysStatus.ProcessRSS = host.ProcessRSS
+	sysStatus.HasRSS = host.HasRSS
+	sysStatus.HTTPClients = systemstatus.ActiveHTTP()
+	sysStatus.SSHClients = systemstatus.ActiveSSH()
+	sysStatus.Sessions = sessionCount
+	sysStatus.SSHEnabled = !setting.SSH.Disabled && setting.SSH.StartBuiltinServer
 
 	sysStatus.MemAllocated = int64(m.Alloc)
 	sysStatus.MemTotal = int64(m.TotalAlloc)
@@ -117,6 +145,13 @@ func updateSystemStatus() {
 	sysStatus.NumGC = m.NumGC
 }
 
+func getSessionCount(ctx *context.Context) int {
+	if ctx.Session == nil {
+		return 0
+	}
+	return ctx.Session.Count()
+}
+
 func prepareDeprecatedWarningsAlert(ctx *context.Context) {
 	if len(setting.DeprecatedWarnings) > 0 {
 		content := setting.DeprecatedWarnings[0]
@@ -133,7 +168,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate(ctx)
 	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion(ctx)
-	updateSystemStatus()
+	updateSystemStatus(getSessionCount(ctx))
 	ctx.Data["SysStatus"] = sysStatus
 
 	entries := []string{
@@ -161,7 +196,7 @@ func Dashboard(ctx *context.Context) {
 }
 
 func SystemStatus(ctx *context.Context) {
-	updateSystemStatus()
+	updateSystemStatus(getSessionCount(ctx))
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.HTML(http.StatusOK, tplSystemStatus)
 }
@@ -171,7 +206,7 @@ func DashboardPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
-	updateSystemStatus()
+	updateSystemStatus(getSessionCount(ctx))
 	ctx.Data["SysStatus"] = sysStatus
 
 	// Run operation.
