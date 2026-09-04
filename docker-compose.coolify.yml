@@ -1,21 +1,25 @@
-# Coolify-ready Quad4 Forge stack
+# Coolify-ready Quad4 Forge (hardened)
 # Docs: https://coolify.io/docs/knowledge-base/docker/compose
 #
-# In Coolify: New Resource → Docker Compose → paste/select this file.
 # Assign a domain to service "forge" (container port 3000).
-# Optionally assign domains to glitchtip (8000) and gatecha (8080).
-#
-# Required secrets (Coolify UI will highlight :? vars):
-#   FORGE_DB_PASSWORD, ALTCHA_HMAC_KEY
-# Optional monitoring profile vars when enabling GlitchTip services:
-#   GLITCHTIP_DB_PASSWORD, GLITCHTIP_SECRET_KEY
+# Required: FORGE_DB_PASSWORD, ALTCHA_HMAC_KEY
+# ALTCHA is embedded in Forge (no separate captcha container).
 
 name: quad4-forge
+
+x-security: &security
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
 
 services:
   db:
     image: docker.io/library/postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     restart: unless-stopped
+    <<: *security
+    read_only: false
     environment:
       POSTGRES_DB: ${FORGE_DB_NAME:-forgejo}
       POSTGRES_USER: ${FORGE_DB_USER:-forgejo}
@@ -25,31 +29,68 @@ services:
         source: ./data/forge-db
         target: /var/lib/postgresql/data
         is_directory: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /run/postgresql:size=16m,mode=0755
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
       retries: 10
-    # private: no ports, no domain
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
 
   redis:
     image: docker.io/library/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
     restart: unless-stopped
-    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    user: "999:999"
+    <<: *security
+    command:
+      - redis-server
+      - --save
+      - "60"
+      - "1"
+      - --loglevel
+      - warning
+      - --protected-mode
+      - "yes"
+      - --bind
+      - "0.0.0.0"
     volumes:
       - type: bind
         source: ./data/forge-redis
         target: /data
         is_directory: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 10
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   forge:
     image: ${FORGE_IMAGE:-ghcr.io/quad4-software/forge-rootless:latest}
     restart: unless-stopped
+    user: "1000:1000"
+    <<: *security
+    read_only: false
     depends_on:
       db:
         condition: service_healthy
@@ -58,7 +99,6 @@ services:
     environment:
       USER_UID: "1000"
       USER_GID: "1000"
-      # Coolify magic URL for this service (port 3000)
       SERVICE_URL_FORGE_3000: ${SERVICE_URL_FORGE_3000}
       FORGEJO__APP_NAME: ${APP_NAME:-Quad4 Forge}
       FORGEJO__APP_SLOGAN: ${APP_SLOGAN:-Charcoal. Code. Forge.}
@@ -81,13 +121,12 @@ services:
       FORGEJO__queue__TYPE: redis
       FORGEJO__queue__CONN_STR: redis://redis:6379/2
       FORGEJO__metrics__ENABLED: ${METRICS_ENABLED:-true}
-      FORGEJO__service__ENABLE_CAPTCHA: ${ENABLE_CAPTCHA:-true}
-      FORGEJO__service__CAPTCHA_TYPE: ${CAPTCHA_TYPE:-altcha}
+      FORGEJO__service__ENABLE_CAPTCHA: "true"
+      FORGEJO__service__CAPTCHA_TYPE: altcha
       FORGEJO__service__REQUIRE_CAPTCHA_FOR_LOGIN: ${REQUIRE_CAPTCHA_FOR_LOGIN:-false}
-      FORGEJO__service__ALTCHA_MODE: ${ALTCHA_MODE:-embedded}
+      FORGEJO__service__ALTCHA_MODE: embedded
       FORGEJO__service__ALTCHA_HMAC_KEY: ${ALTCHA_HMAC_KEY:?}
-      FORGEJO__service__ALTCHA_CHALLENGE_URL: ${ALTCHA_CHALLENGE_URL:-}
-      FORGEJO__service__ALTCHA_VERIFY_MODE: ${ALTCHA_VERIFY_MODE:-solution}
+      FORGEJO__service__ALTCHA_VERIFY_MODE: solution
       FORGEJO__service__ALTCHA_MAX_NUMBER: ${ALTCHA_MAX_NUMBER:-100000}
       FORGEJO__sentry__ENABLED: ${SENTRY_ENABLED:-false}
       FORGEJO__sentry__DSN: ${SENTRY_DSN:-}
@@ -99,100 +138,22 @@ services:
         source: ./data/forge
         target: /var/lib/gitea
         is_directory: true
-    # Expose SSH on host only if needed (Coolify HTTP/S via domain proxy)
+    tmpfs:
+      - /tmp:size=256m,mode=1777,uid=1000,gid=1000
+      - /var/tmp:size=64m,mode=1777,uid=1000,gid=1000
     ports:
       - "${SSH_HOST_PORT:-2222}:2222"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/healthz"]
       interval: 30s
       timeout: 5s
-      start_period: 45s
       retries: 5
-
-  glitchtip-db:
-    image: docker.io/library/postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${GLITCHTIP_DB_NAME:-glitchtip}
-      POSTGRES_USER: ${GLITCHTIP_DB_USER:-glitchtip}
-      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:-}
-    volumes:
-      - type: bind
-        source: ./data/glitchtip-db
-        target: /var/lib/postgresql/data
-        is_directory: true
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    exclude_from_hc: true
-
-  glitchtip-redis:
-    image: docker.io/library/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
-    restart: unless-stopped
-    volumes:
-      - type: bind
-        source: ./data/glitchtip-redis
-        target: /data
-        is_directory: true
-    exclude_from_hc: true
-
-  glitchtip:
-    image: docker.io/glitchtip/glitchtip:v4.2@sha256:41c4c0ac813eda1c605c30ce55d72c09f4d427f30f795db1de3def43c4977c7a
-    restart: unless-stopped
-    depends_on:
-      glitchtip-db:
-        condition: service_healthy
-      glitchtip-redis:
-        condition: service_started
-    environment:
-      SERVICE_URL_GLITCHTIP_8000: ${SERVICE_URL_GLITCHTIP_8000}
-      DATABASE_URL: postgres://${GLITCHTIP_DB_USER:-glitchtip}:${GLITCHTIP_DB_PASSWORD}@glitchtip-db:5432/${GLITCHTIP_DB_NAME:-glitchtip}
-      REDIS_URL: redis://glitchtip-redis:6379/0
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-}
-      PORT: "8000"
-      GLITCHTIP_DOMAIN: ${SERVICE_URL_GLITCHTIP_8000}
-      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-noreply@localhost}
-      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
-      ENABLE_USER_REGISTRATION: ${GLITCHTIP_ENABLE_REGISTRATION:-True}
-    volumes:
-      - type: bind
-        source: ./data/glitchtip-uploads
-        target: /code/uploads
-        is_directory: true
-    exclude_from_hc: true
-
-  glitchtip-worker:
-    image: docker.io/glitchtip/glitchtip:v4.2@sha256:41c4c0ac813eda1c605c30ce55d72c09f4d427f30f795db1de3def43c4977c7a
-    restart: unless-stopped
-    command: ["./bin/run-celery-with-beat.sh"]
-    depends_on:
-      - glitchtip
-    environment:
-      DATABASE_URL: postgres://${GLITCHTIP_DB_USER:-glitchtip}:${GLITCHTIP_DB_PASSWORD}@glitchtip-db:5432/${GLITCHTIP_DB_NAME:-glitchtip}
-      REDIS_URL: redis://glitchtip-redis:6379/0
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-}
-      GLITCHTIP_DOMAIN: ${SERVICE_URL_GLITCHTIP_8000}
-      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-noreply@localhost}
-      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
-    volumes:
-      - type: bind
-        source: ./data/glitchtip-uploads
-        target: /code/uploads
-        is_directory: true
-    exclude_from_hc: true
-
-  # Optional: set ALTCHA_MODE=remote and ALTCHA_CHALLENGE_URL to this service URL path from GateCHA UI.
-  gatecha:
-    image: ghcr.io/upellift99/gatecha:latest
-    restart: unless-stopped
-    environment:
-      SERVICE_URL_GATECHA_8080: ${SERVICE_URL_GATECHA_8080}
-      GATECHA_ADMIN_PASSWORD: ${GATECHA_ADMIN_PASSWORD:-}
-    volumes:
-      - type: bind
-        source: ./data/gatecha
-        target: /app/data
-        is_directory: true
-    exclude_from_hc: true
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
