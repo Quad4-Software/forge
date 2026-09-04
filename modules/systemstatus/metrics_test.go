@@ -11,7 +11,7 @@ import (
 
 func TestCollectLinuxBasics(t *testing.T) {
 	m := Collect()
-	assert.Greater(t, m.NumCPU, 0)
+	assert.Positive(t, m.NumCPU)
 	if m.HasLoad {
 		assert.GreaterOrEqual(t, m.Load1, 0.0)
 		assert.GreaterOrEqual(t, m.Load5, 0.0)
@@ -19,10 +19,10 @@ func TestCollectLinuxBasics(t *testing.T) {
 		assert.NotEqual(t, "n/a", FormatLoad(m))
 	}
 	if m.HasRSS {
-		assert.Greater(t, m.ProcessRSS, int64(0))
+		assert.Positive(t, m.ProcessRSS)
 	}
 	if m.HasMem {
-		assert.Greater(t, m.MemTotal, int64(0))
+		assert.Positive(t, m.MemTotal)
 		assert.GreaterOrEqual(t, m.MemUsed, int64(0))
 		assert.NotEqual(t, "n/a", FormatMemPercent(m))
 	}
