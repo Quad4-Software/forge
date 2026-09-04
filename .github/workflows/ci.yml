@@ -1,0 +1,180 @@
+# Quad4 Forge CI — pinned actions, least-privilege tokens, path filters, caches.
+# Secure use: https://docs.github.com/en/actions/reference/security/secure-use
+
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      docker: ${{ steps.filter.outputs.docker }}
+      workflows: ${{ steps.filter.outputs.workflows }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Path filters
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+              - 'Makefile'
+              - 'build/**'
+              - 'models/**'
+              - 'modules/**'
+              - 'routers/**'
+              - 'services/**'
+              - 'cmd/**'
+              - 'tests/**'
+            frontend:
+              - 'web_src/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'webpack.config.js'
+              - 'tailwind.config.js'
+              - 'assets/**'
+              - 'public/assets/**'
+              - 'options/locale*/**'
+            docker:
+              - 'Dockerfile'
+              - 'Dockerfile.rootless'
+              - 'docker/**'
+              - '.github/workflows/container.yml'
+              - '.github/workflows/release.yml'
+            workflows:
+              - '.github/workflows/**'
+
+  lint-go:
+    needs: changes
+    if: needs.changes.outputs.go == 'true' || needs.changes.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Backend checks
+        run: make lint-go
+
+  test-go:
+    needs: changes
+    if: needs.changes.outputs.go == 'true' || needs.changes.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: unit
+            target: test-backend
+          - name: check
+            target: test-check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Run ${{ matrix.name }}
+        env:
+          TAGS: bindata
+          GITHUB_ACTIONS_STEP: ${{ matrix.name }}
+        run: make ${{ matrix.target }}
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install deps
+        run: make deps-frontend
+
+      - name: Lint and check
+        run: |
+          make lint-frontend
+          make checks-frontend
+
+      - name: Test and build
+        run: |
+          make test-frontend
+          make frontend
+
+      - name: Upload frontend assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-assets-${{ github.sha }}
+          path: public/assets
+          if-no-files-found: error
+          retention-days: 3
+
+  docker-smoke:
+    needs: changes
+    if: needs.changes.outputs.docker == 'true' || needs.changes.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        file: [Dockerfile, Dockerfile.rootless]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Build only (${{ matrix.file }})
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: false
+          load: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=smoke-${{ matrix.file }}
+          cache-to: type=gha,mode=max,scope=smoke-${{ matrix.file }}
+          build-args: |
+            RELEASE_VERSION=ci-${{ github.sha }}
