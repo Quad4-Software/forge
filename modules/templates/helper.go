@@ -8,6 +8,7 @@ package templates
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -122,6 +123,17 @@ func NewFuncMap() template.FuncMap {
 		},
 		"AppVer": func() string {
 			return setting.AppVer
+		},
+		"SentryFrontendDSN": func() template.JS {
+			b, _ := json.Marshal(setting.FrontendDSNOrEmpty())
+			return template.JS(b)
+		},
+		"SentryFrontendDSNRaw": func() string {
+			return setting.FrontendDSNOrEmpty()
+		},
+		"SentryEnvironment": func() template.JS {
+			b, _ := json.Marshal(setting.Sentry.Environment)
+			return template.JS(b)
 		},
 		"AppVerNoMetadata": func() string {
 			version, _, _ := strings.Cut(setting.AppVer, "+")

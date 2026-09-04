@@ -1,60 +1,57 @@
-FROM --platform=$BUILDPLATFORM data.forgejo.org/oci/xx AS xx
+# Quad4 Forge rootless image — multi-stage, digest-pinned bases.
+# docker buildx build -f Dockerfile.rootless --build-arg RELEASE_VERSION=dev -t quad4-forge:dev .
 
-FROM --platform=$BUILDPLATFORM data.forgejo.org/oci/golang:1.26-alpine3.23 AS build-env
+# syntax=docker/dockerfile:1.7
+
+ARG XX_IMAGE=docker.io/tonistiigi/xx:1.6.1@sha256:923441d7c25f1e2eb5789f82d987693c47b8ed987c4ab3b075d6ed2b5d6779a3
+ARG GOLANG_IMAGE=docker.io/library/golang:1.26-alpine3.23@sha256:33ce311e5eecedee48ec1b84419c1306e9fbd71009f0d5c3f2a6904b579c1ecc
+ARG ALPINE_IMAGE=docker.io/library/alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+
+FROM --platform=$BUILDPLATFORM ${XX_IMAGE} AS xx
+
+FROM --platform=$BUILDPLATFORM ${GOLANG_IMAGE} AS build-env
 
 ARG GOPROXY
 ENV GOPROXY=${GOPROXY:-https://proxy.golang.org,direct}
 
-ARG RELEASE_VERSION
+ARG RELEASE_VERSION=dev
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
-
-# it's set to local by default in the base image
-# we want to use auto to let go choose the right toolchain
 ENV GOTOOLCHAIN=auto
 
-#
-# Transparently cross compile for the target platform
-#
 COPY --from=xx / /
 ARG TARGETPLATFORM
-RUN apk --no-cache add clang lld
+RUN apk --no-cache add clang lld build-base git nodejs npm make
 RUN xx-apk --no-cache add gcc musl-dev
 ENV CGO_ENABLED=1
 RUN xx-go --wrap
-#
-# for go generate and binfmt to find
-# without it the generate phase will fail with
-# #19 25.04 modules/public/public_bindata.go:8: running "go": exit status 1
-# #19 25.39 aarch64-binfmt-P: Could not open '/lib/ld-musl-aarch64.so.1': No such file or directory
-# why exactly is it needed? where is binfmt involved?
-#
 RUN cp /*-alpine-linux-musl*/lib/ld-musl-*.so.1 /lib || true
-
-RUN apk --no-cache add build-base git nodejs npm
 
 COPY . ${GOPATH}/src/forgejo.org
 WORKDIR ${GOPATH}/src/forgejo.org
 
-RUN make clean-no-bindata
-RUN make frontend
-RUN go build contrib/environment-to-ini/environment-to-ini.go && xx-verify environment-to-ini
-RUN make FORGEJO_GENERATE_SKIP_HASH=true RELEASE_VERSION=$RELEASE_VERSION go-check generate-backend static-executable && xx-verify gitea
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/root/.npm \
+    make clean-no-bindata \
+ && make frontend \
+ && go build -trimpath -ldflags="-s -w -buildid=" contrib/environment-to-ini/environment-to-ini.go \
+ && xx-verify environment-to-ini \
+ && make FORGEJO_GENERATE_SKIP_HASH=true RELEASE_VERSION=$RELEASE_VERSION GOFLAGS="-trimpath" go-check generate-backend static-executable \
+ && xx-verify gitea
 
-# Copy local files
 COPY docker/rootless /tmp/local
-
-# Set permissions
 RUN chmod 755 /tmp/local/usr/local/bin/docker-entrypoint.sh \
               /tmp/local/usr/local/bin/docker-setup.sh \
               /tmp/local/usr/local/bin/gitea \
               /go/src/forgejo.org/gitea \
-              /go/src/forgejo.org/environment-to-ini
-RUN chmod 644 /go/src/forgejo.org/contrib/autocompletion/bash_autocomplete
+              /go/src/forgejo.org/environment-to-ini \
+ && chmod 644 /go/src/forgejo.org/contrib/autocompletion/bash_autocomplete
 
-FROM data.forgejo.org/oci/alpine:3.24
-ARG RELEASE_VERSION
+FROM ${ALPINE_IMAGE}
+
+ARG RELEASE_VERSION=dev
 LABEL maintainer="Quad4 Software" \
       org.opencontainers.image.authors="Quad4 Software" \
       org.opencontainers.image.url="https://github.com/Quad4-Software/forge" \
@@ -69,48 +66,33 @@ LABEL maintainer="Quad4 Software" \
 EXPOSE 2222 3000
 
 RUN apk --no-cache add \
-    bash \
-    ca-certificates \
-    dumb-init \
-    gettext \
-    git \
-    curl \
-    gnupg \
-    openssh-client \
-    && rm -rf /var/cache/apk/*
-
-RUN addgroup \
-    -S -g 1000 \
-    git && \
-  adduser \
-    -S -H -D \
-    -h /var/lib/gitea/git \
-    -s /bin/bash \
-    -u 1000 \
-    -G git \
-    git
-
-RUN mkdir -p /var/lib/gitea
-RUN chown git:git /var/lib/gitea
+      bash ca-certificates dumb-init gettext git curl gnupg openssh-client \
+ && rm -rf /var/cache/apk/* \
+ && addgroup -S -g 1000 git \
+ && adduser -S -H -D -h /var/lib/gitea/git -s /bin/bash -u 1000 -G git git \
+ && mkdir -p /var/lib/gitea /tmp/gitea \
+ && chown -R git:git /var/lib/gitea /tmp/gitea
 
 COPY --from=build-env /tmp/local /
-RUN cd /usr/local/bin ; ln -s gitea forgejo
+RUN cd /usr/local/bin && ln -sf gitea forgejo
 COPY --from=build-env --chown=root:root /go/src/forgejo.org/gitea /app/gitea/gitea
-RUN ln -s /app/gitea/gitea /app/gitea/forgejo-cli
+RUN ln -sf /app/gitea/gitea /app/gitea/forgejo-cli
 COPY --from=build-env --chown=root:root /go/src/forgejo.org/environment-to-ini /usr/local/bin/environment-to-ini
 COPY --from=build-env /go/src/forgejo.org/contrib/autocompletion/bash_autocomplete /etc/profile.d/gitea_bash_autocomplete.sh
 
-#git:git
 USER 1000:1000
-ENV GITEA_WORK_DIR=/var/lib/gitea
-ENV GITEA_CUSTOM=/var/lib/gitea/custom
-ENV GITEA_TEMP=/tmp/gitea
-ENV TMPDIR=/tmp/gitea
+ENV GITEA_WORK_DIR=/var/lib/gitea \
+    GITEA_CUSTOM=/var/lib/gitea/custom \
+    GITEA_TEMP=/tmp/gitea \
+    TMPDIR=/tmp/gitea \
+    GITEA_APP_INI=/var/lib/gitea/custom/conf/app.ini \
+    HOME=/var/lib/gitea/git
 
-ENV GITEA_APP_INI=${GITEA_CUSTOM}/conf/app.ini
-ENV HOME="/var/lib/gitea/git"
 VOLUME ["/var/lib/gitea"]
 WORKDIR /var/lib/gitea
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:3000/api/healthz || exit 1
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD []

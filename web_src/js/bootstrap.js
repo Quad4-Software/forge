@@ -70,6 +70,10 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   const dot = msg.endsWith('.') ? '' : '.';
   const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
   showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}${dot} Open browser console to see more details.`);
+
+  if (window.Sentry?.captureException && err) {
+    window.Sentry.captureException(err instanceof Error ? err : new Error(String(err)));
+  }
 }
 
 function initGlobalErrorHandler() {

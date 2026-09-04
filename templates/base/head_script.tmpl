@@ -43,8 +43,21 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 			more_items: {{ctx.Locale.Tr "more_items"}},
 			incorrect_root_url: {{ctx.Locale.Tr "incorrect_root_url" AppUrl}},
 		},
+		sentryDsn: {{SentryFrontendDSN}},
+		sentryEnvironment: {{SentryEnvironment}},
 	};
 	{{/* in case some pages don't render the pageData, we make sure it is an object to prevent null access */}}
 	window.config.pageData = window.config.pageData || {};
 </script>
+{{if SentryFrontendDSNRaw}}
+<script src="https://browser.sentry-cdn.com/8.55.0/bundle.min.js" crossorigin="anonymous"></script>
+<script>
+	if (window.Sentry && window.config.sentryDsn) {
+		window.Sentry.init({
+			dsn: window.config.sentryDsn,
+			environment: window.config.sentryEnvironment || 'production',
+		});
+	}
+</script>
+{{end}}
 <script src="{{AssetUrlPrefix}}/js/webcomponents.js?v={{AssetVersion}}"></script>

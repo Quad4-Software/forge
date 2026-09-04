@@ -24,6 +24,15 @@ const (
 	HCaptcha     = "hcaptcha"
 	MCaptcha     = "mcaptcha"
 	CfTurnstile  = "cfturnstile"
+	Altcha       = "altcha"
+
+	AltchaModeEmbedded = "embedded"
+	AltchaModeRemote   = "remote"
+
+	AltchaVerifySolution        = "solution"
+	AltchaVerifyServerSignature = "server_signature"
+
+	altchaDefaultMaxNumber int64 = 100000
 )
 
 // Service settings
@@ -70,6 +79,13 @@ var Service = struct {
 	McaptchaSecret                          string
 	McaptchaSitekey                         string
 	McaptchaURL                             string
+	AltchaHMACKey                           string
+	AltchaMode                              string
+	AltchaChallengeURL                      string
+	AltchaVerifyMode                        string
+	AltchaMaxNumber                         int64
+	AltchaExpires                           time.Duration
+	AltchaScriptURL                         string
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
 	DefaultUserIsRestricted                 bool
@@ -233,6 +249,25 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.McaptchaURL = sec.Key("MCAPTCHA_URL").MustString("https://demo.mcaptcha.org/")
 	Service.McaptchaSecret = sec.Key("MCAPTCHA_SECRET").MustString("")
 	Service.McaptchaSitekey = sec.Key("MCAPTCHA_SITEKEY").MustString("")
+	Service.AltchaHMACKey = sec.Key("ALTCHA_HMAC_KEY").MustString("")
+	Service.AltchaMode = sec.Key("ALTCHA_MODE").MustString(AltchaModeEmbedded)
+	Service.AltchaChallengeURL = sec.Key("ALTCHA_CHALLENGE_URL").MustString("")
+	Service.AltchaVerifyMode = sec.Key("ALTCHA_VERIFY_MODE").MustString(AltchaVerifySolution)
+	Service.AltchaMaxNumber = sec.Key("ALTCHA_MAX_NUMBER").MustInt64(altchaDefaultMaxNumber)
+	var errAltchaExpires error
+	Service.AltchaExpires, errAltchaExpires = sec.Key("ALTCHA_EXPIRES").MustDuration(5 * time.Minute)
+	if errAltchaExpires != nil {
+		log.Error("Invalid service.ALTCHA_EXPIRES: %v", errAltchaExpires)
+		Service.AltchaExpires = 5 * time.Minute
+	}
+	Service.AltchaScriptURL = sec.Key("ALTCHA_SCRIPT_URL").MustString("https://cdn.jsdelivr.net/gh/altcha-org/altcha@main/dist/altcha.min.js")
+	if Service.AltchaChallengeURL == "" && Service.AltchaMode == AltchaModeEmbedded {
+		Service.AltchaChallengeURL = AppSubURL + "/altcha/challenge"
+	}
+	if Service.CaptchaType == Altcha && Service.AltchaChallengeURL != "" && !strings.HasPrefix(Service.AltchaChallengeURL, "/") && !strings.Contains(Service.AltchaChallengeURL, "://") {
+		// treat as path under AppSubURL
+		Service.AltchaChallengeURL = AppSubURL + "/" + strings.TrimPrefix(Service.AltchaChallengeURL, "/")
+	}
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.DefaultUserIsRestricted = sec.Key("DEFAULT_USER_IS_RESTRICTED").MustBool(false)

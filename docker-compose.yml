@@ -1,0 +1,187 @@
+# Quad4 Forge local/dev stack
+# Usage:
+#   cp .env.example .env
+#   docker compose up -d
+# Profiles:
+#   --profile monitoring   GlitchTip (Sentry-compatible)
+#   --profile altcha-remote  optional GateCHA server (remote ALTCHA)
+#
+# Default ALTCHA mode is embedded (Forge serves /altcha/challenge).
+
+name: quad4-forge
+
+x-forge-env: &forge-env
+  USER_UID: "1000"
+  USER_GID: "1000"
+  FORGEJO__APP_NAME: ${APP_NAME:-Quad4 Forge}
+  FORGEJO__APP_SLOGAN: ${APP_SLOGAN:-Charcoal. Code. Forge.}
+  FORGEJO__server__DOMAIN: ${DOMAIN:-localhost}
+  FORGEJO__server__ROOT_URL: ${ROOT_URL:-http://localhost:3000/}
+  FORGEJO__server__HTTP_PORT: "3000"
+  FORGEJO__server__SSH_PORT: ${SSH_PORT:-2222}
+  FORGEJO__server__START_SSH_SERVER: "true"
+  FORGEJO__database__DB_TYPE: postgres
+  FORGEJO__database__HOST: db:5432
+  FORGEJO__database__NAME: ${FORGE_DB_NAME:-forgejo}
+  FORGEJO__database__USER: ${FORGE_DB_USER:-forgejo}
+  FORGEJO__database__PASSWD: ${FORGE_DB_PASSWORD:?}
+  FORGEJO__cache__ADAPTER: redis
+  FORGEJO__cache__HOST: redis://redis:6379/0
+  FORGEJO__session__PROVIDER: redis
+  FORGEJO__session__PROVIDER_CONFIG: redis://redis:6379/1
+  FORGEJO__queue__TYPE: redis
+  FORGEJO__queue__CONN_STR: redis://redis:6379/2
+  FORGEJO__metrics__ENABLED: ${METRICS_ENABLED:-true}
+  FORGEJO__service__ENABLE_CAPTCHA: ${ENABLE_CAPTCHA:-true}
+  FORGEJO__service__CAPTCHA_TYPE: ${CAPTCHA_TYPE:-altcha}
+  FORGEJO__service__REQUIRE_CAPTCHA_FOR_LOGIN: ${REQUIRE_CAPTCHA_FOR_LOGIN:-false}
+  FORGEJO__service__ALTCHA_MODE: ${ALTCHA_MODE:-embedded}
+  FORGEJO__service__ALTCHA_HMAC_KEY: ${ALTCHA_HMAC_KEY:?}
+  FORGEJO__service__ALTCHA_CHALLENGE_URL: ${ALTCHA_CHALLENGE_URL:-}
+  FORGEJO__service__ALTCHA_VERIFY_MODE: ${ALTCHA_VERIFY_MODE:-solution}
+  FORGEJO__service__ALTCHA_MAX_NUMBER: ${ALTCHA_MAX_NUMBER:-100000}
+  FORGEJO__sentry__ENABLED: ${SENTRY_ENABLED:-false}
+  FORGEJO__sentry__DSN: ${SENTRY_DSN:-}
+  FORGEJO__sentry__FRONTEND_DSN: ${SENTRY_FRONTEND_DSN:-}
+  FORGEJO__sentry__ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+  FORGEJO__ui__DEFAULT_THEME: quad4-dark
+
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${FORGE_DB_NAME:-forgejo}
+      POSTGRES_USER: ${FORGE_DB_USER:-forgejo}
+      POSTGRES_PASSWORD: ${FORGE_DB_PASSWORD:?}
+    volumes:
+      - forge-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: docker.io/library/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - forge-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  forge:
+    image: ${FORGE_IMAGE:-ghcr.io/quad4-software/forge-rootless:dev}
+    build:
+      context: .
+      dockerfile: Dockerfile.rootless
+      args:
+        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *forge-env
+    volumes:
+      - forge-data:/var/lib/gitea
+    ports:
+      - "${HTTP_PORT:-3000}:3000"
+      - "${SSH_PORT:-2222}:2222"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 5
+
+  # Optional GlitchTip (Sentry-compatible). Create a project, copy DSN into SENTRY_DSN.
+  glitchtip-db:
+    profiles: ["monitoring"]
+    image: docker.io/library/postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${GLITCHTIP_DB_NAME:-glitchtip}
+      POSTGRES_USER: ${GLITCHTIP_DB_USER:-glitchtip}
+      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:?}
+    volumes:
+      - glitchtip-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  glitchtip-redis:
+    profiles: ["monitoring"]
+    image: docker.io/library/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+    restart: unless-stopped
+    volumes:
+      - glitchtip-redis:/data
+
+  glitchtip:
+    profiles: ["monitoring"]
+    image: docker.io/glitchtip/glitchtip:v4.2@sha256:41c4c0ac813eda1c605c30ce55d72c09f4d427f30f795db1de3def43c4977c7a
+    restart: unless-stopped
+    depends_on:
+      glitchtip-db:
+        condition: service_healthy
+      glitchtip-redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://${GLITCHTIP_DB_USER:-glitchtip}:${GLITCHTIP_DB_PASSWORD:?}@glitchtip-db:5432/${GLITCHTIP_DB_NAME:-glitchtip}
+      REDIS_URL: redis://glitchtip-redis:6379/0
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?}
+      PORT: "8000"
+      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8000}
+      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-noreply@localhost}
+      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+      ENABLE_USER_REGISTRATION: ${GLITCHTIP_ENABLE_REGISTRATION:-True}
+    ports:
+      - "${GLITCHTIP_PORT:-8000}:8000"
+    volumes:
+      - glitchtip-uploads:/code/uploads
+
+  glitchtip-worker:
+    profiles: ["monitoring"]
+    image: docker.io/glitchtip/glitchtip:v4.2@sha256:41c4c0ac813eda1c605c30ce55d72c09f4d427f30f795db1de3def43c4977c7a
+    restart: unless-stopped
+    command: ["./bin/run-celery-with-beat.sh"]
+    depends_on:
+      - glitchtip
+    environment:
+      DATABASE_URL: postgres://${GLITCHTIP_DB_USER:-glitchtip}:${GLITCHTIP_DB_PASSWORD:?}@glitchtip-db:5432/${GLITCHTIP_DB_NAME:-glitchtip}
+      REDIS_URL: redis://glitchtip-redis:6379/0
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?}
+      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8000}
+      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-noreply@localhost}
+      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+    volumes:
+      - glitchtip-uploads:/code/uploads
+
+  # Optional remote ALTCHA server (GateCHA). Set ALTCHA_MODE=remote and ALTCHA_CHALLENGE_URL.
+  gatecha:
+    profiles: ["altcha-remote"]
+    image: ghcr.io/upellift99/gatecha:latest
+    restart: unless-stopped
+    environment:
+      GATECHA_ADMIN_PASSWORD: ${GATECHA_ADMIN_PASSWORD:?}
+    volumes:
+      - gatecha-data:/app/data
+    ports:
+      - "${GATECHA_PORT:-8088}:8080"
+
+volumes:
+  forge-data:
+  forge-db:
+  forge-redis:
+  glitchtip-db:
+  glitchtip-redis:
+  glitchtip-uploads:
+  gatecha-data:

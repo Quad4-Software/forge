@@ -23,6 +23,7 @@ const tplStatus500 base.TplName = "status/500"
 func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 	combinedErr := fmt.Sprintf("%v\n%s", err, log.Stack(2))
 	log.Error("PANIC: %s", combinedErr)
+	setting.CapturePanic(err)
 
 	defer func() {
 		if err := recover(); err != nil {

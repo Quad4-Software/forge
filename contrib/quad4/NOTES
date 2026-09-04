@@ -3,30 +3,37 @@ Quad4 smart fork of Forgejo
 
 Remotes
   upstream  https://codeberg.org/forgejo/forgejo.git  (fetch only, push disabled)
-  origin    your own host (add with contrib/quad4/add-origin.sh)
+  origin    git@github.com:Quad4-Software/forge.git
 
 Branches
   forgejo   tracks upstream/forgejo (clean Forgejo tip, do not commit here)
-  quad4     your customizations live here (default working branch)
+  master    Quad4 customizations (default)
 
-Sync upstream into your fork
-  git checkout quad4
+Sync upstream
+  git checkout master
   contrib/quad4/sync-upstream.sh
+  or wait for .github/workflows/sync-upstream.yml weekly PR
 
 Branding
   Default theme: quad4-dark
   Theme source: web_src/css/themes/theme-quad4-dark.css
   Logo master: contrib/quad4/brand/logo-transparent.png
-  Raw AI export: contrib/quad4/brand/logo-1024.png / logo-raw.png
-  SVG files are PNG embeds (do not hand-draw vectors)
   Rebuild: contrib/quad4/rebuild-brand.sh
 
-GitHub
-  origin  git@github.com:Quad4-Software/forge.git
-  default branch: master
-  GHCR    ghcr.io/quad4-software/forge:dev|latest
-          ghcr.io/quad4-software/forge-rootless:dev|latest
-  Actions .github/workflows/{ci,container,release}.yml
+DevOps platform features
+  ALTCHA captcha (embedded or remote): [service] CAPTCHA_TYPE=altcha
+  Docs: https://altcha.org/docs/ https://altcha.org/docs/integration/quick-start/
+  GlitchTip/Sentry: [sentry] ENABLED + DSN (backend + frontend)
+
+Compose
+  docker-compose.yml           local stack (+ profiles monitoring, altcha-remote)
+  docker-compose.coolify.yml   Coolify-ready (https://coolify.io/docs/knowledge-base/docker/compose)
+  .env.example                 copy to .env
+
+Images
+  Dockerfile.rootless          multi-stage, digest-pinned bases, USER 1000, HEALTHCHECK
+  GHCR ghcr.io/quad4-software/forge:dev|latest
+       ghcr.io/quad4-software/forge-rootless:dev|latest
 
 License
-  Forgejo is GPLv3+. Distributed changes to this tree must stay GPLv3+ compatible.
+  Forgejo is GPLv3+. Distributed changes must stay GPLv3+ compatible.
