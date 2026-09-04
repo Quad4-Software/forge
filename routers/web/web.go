@@ -16,6 +16,7 @@ import (
 	quota_model "forgejo.org/models/quota"
 	repo_model "forgejo.org/models/repo"
 	"forgejo.org/models/unit"
+	"forgejo.org/modules/altcha"
 	"forgejo.org/modules/avatar"
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/metrics"
@@ -382,6 +383,9 @@ func Routes() *web.Route {
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
 		routes.Methods("GET,HEAD", "/captcha/*", gzipMid, captcha.Server(captcha.StdWidth, captcha.StdHeight).ServeHTTP)
+		if setting.Service.CaptchaType == setting.Altcha && setting.Service.AltchaMode != setting.AltchaModeRemote {
+			routes.Methods("GET,HEAD", "/altcha/challenge", gzipMid, altcha.CreateChallengeJSON)
+		}
 	}
 
 	if setting.Metrics.Enabled {

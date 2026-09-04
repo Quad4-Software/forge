@@ -27,4 +27,15 @@
 		<div id="captcha" data-captcha-type="cf-turnstile" data-sitekey="{{.CfTurnstileSitekey}}"></div>
 	</div>
 	<script defer src='https://challenges.cloudflare.com/turnstile/v0/api.js'></script>
+{{else if eq .CaptchaType "altcha"}}
+	<div class="inline field tw-text-center required {{if .Err_Captcha}}error{{end}}">
+		<altcha-widget
+			id="captcha"
+			data-captcha-type="altcha"
+			challengeurl="{{.AltchaChallengeURL}}"
+			name="altcha"
+			style="--altcha-color-border:var(--color-secondary);--altcha-color-base:var(--color-box-body);--altcha-color-text:var(--color-text);"
+		></altcha-widget>
+	</div>
+	<script async defer src="{{.AltchaScriptURL}}" type="module"></script>
 {{end}}{{end}}

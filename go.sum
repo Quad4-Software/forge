@@ -89,6 +89,8 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/alexbrainman/sspi v0.0.0-20250919150558-7d374ff0d59e h1:4dAU9FXIyQktpoUAgOJK3OTFc/xug0PCXYCqU0FgDKI=
 github.com/alexbrainman/sspi v0.0.0-20250919150558-7d374ff0d59e/go.mod h1:cEWa1LVoE5KvSD9ONXsZrj0z6KqySlCCNKHlLzbqAt4=
+github.com/altcha-org/altcha-lib-go v1.0.0 h1:7oPti0aUS+YCep8nwt5b9g4jYfCU55ZruWESL8G9K5M=
+github.com/altcha-org/altcha-lib-go v1.0.0/go.mod h1:I8ESLVWR9C58uvGufB/AJDPhaSU4+4Oh3DLpVtgwDAk=
 github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/andybalholm/cascadia v1.3.4 h1:vM2lgh0Vru9Vwyfm4cQqWP2HHMW0u0+2PAW7Q38Qufg=
@@ -241,6 +243,8 @@ github.com/fxamacker/cbor/v2 v2.9.1 h1:2rWm8B193Ll4VdjsJY28jxs70IdDsHRWgQYAI80+r
 github.com/fxamacker/cbor/v2 v2.9.1/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/gdgvda/cron v0.7.0 h1:LFPZUTbCb5ZpzYxavbQDDbjd6nwTwkiNUWyulOdlY2I=
 github.com/gdgvda/cron v0.7.0/go.mod h1:caBF+mzTZGtQqFE05T1m6u9OmCASY3EK51XAICf3wio=
+github.com/getsentry/sentry-go v0.49.0 h1:Ehejknu1l023Ub7QoRBVLAI7g3Jnhqku4oWx4B4Sh5s=
+github.com/getsentry/sentry-go v0.49.0/go.mod h1:nuMJAoCfe1u0Bts2ocyNI+TW8HT84vRMqwA5Qq/SKUI=
 github.com/go-ap/activitypub v0.0.0-20260208110334-902f6cf8c2cc h1:yLe7YJhK+XNjNV4SqDxAjpWAgft+KU+XwKZS4AKEUV0=
 github.com/go-ap/activitypub v0.0.0-20260208110334-902f6cf8c2cc/go.mod h1:jUs8eczo1EAT4ByRpZ4mQmNvjarw9eNf7Nm5udpMRhY=
 github.com/go-ap/errors v0.0.0-20260208110149-e1b309365966 h1:tV+3kZgqFMKVUf+JPKBV400ISM8440+6y/SQCS0WZwQ=
@@ -260,6 +264,8 @@ github.com/go-enry/go-enry/v2 v2.9.6 h1:np63eOtMV56zfYDHnFVgpEVOk8fr2kmylcMnAZUD
 github.com/go-enry/go-enry/v2 v2.9.6/go.mod h1:9yrj4ES1YrbNb1Wb7/PWYr2bpaCXUGRt0uafN0ISyG8=
 github.com/go-enry/go-oniguruma v1.2.1 h1:k8aAMuJfMrqm/56SG2lV9Cfti6tC4x8673aHCcBk+eo=
 github.com/go-enry/go-oniguruma v1.2.1/go.mod h1:bWDhYP+S6xZQgiRL7wlTScFYBe023B6ilRZbCAD5Hf4=
+github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
+github.com/go-errors/errors v1.4.2/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
 github.com/go-fed/httpsig v1.1.0 h1:9M+hb0jkEICD8/cAiNqEB66R87tTINszBRTjwjQzWcI=
 github.com/go-fed/httpsig v1.1.0/go.mod h1:RCMrTZvN1bJYtofsG4rd5NaO5obxQ5xBkdiS7xsT7bM=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
@@ -593,6 +599,8 @@ github.com/philhofer/fwd v1.2.0 h1:e6DnBTl7vGY+Gz322/ASL4Gyp1FspeMvx1RNDoToZuM=
 github.com/philhofer/fwd v1.2.0/go.mod h1:RqIHx9QI14HlwKwm98g9Re5prTQ6LdeRQn+gXJFxsJM=
 github.com/pierrec/lz4/v4 v4.1.22 h1:cKFw6uJDK+/gfw5BcDL0JL5aBsAFdsIT18eRtLj7VIU=
 github.com/pierrec/lz4/v4 v4.1.22/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
+github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=
+github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
@@ -623,8 +631,8 @@ github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFR
 github.com/rogpeppe/go-internal v1.6.1/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
 github.com/rogpeppe/go-internal v1.8.1/go.mod h1:JeRgkft04UBgHMgCIwADu4Pn6Mtm5d4nPKWu0nJ5d+o=
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
-github.com/rogpeppe/go-internal v1.13.2-0.20241226121412-a5dc8ff20d0a h1:w3tdWGKbLGBPtR/8/oO74W6hmz0qE5q0z9aqSAewaaM=
-github.com/rogpeppe/go-internal v1.13.2-0.20241226121412-a5dc8ff20d0a/go.mod h1:S8kfXMp+yh77OxPD4fdM6YUknrZpQxLhvxzS4gDHENY=
+github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
+github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/rs/xid v1.6.0 h1:fV591PaemRlL6JfRxGDEPl69wICngIQ3shQtzfy2gxU=
 github.com/rs/xid v1.6.0/go.mod h1:7XoLgs4eV+QndskICGsho+ADou8ySMSjJKDIan90Nz0=
 github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd/go.mod h1:hPqNNc0+uJM6H+SuU8sEs5K5IQeKccPqeSjfgcKGgPk=

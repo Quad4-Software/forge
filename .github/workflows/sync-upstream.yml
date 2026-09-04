@@ -1,0 +1,78 @@
+# Keep the Quad4 fork in sync with upstream Forgejo.
+# Secure use: https://docs.github.com/en/actions/reference/security/secure-use
+
+name: sync-upstream
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        env:
+          ACTOR: ${{ github.actor }}
+        run: |
+          git config user.name "$ACTOR"
+          git config user.email "${ACTOR}@users.noreply.github.com"
+
+      - name: Fetch Forgejo upstream
+        run: |
+          git remote add upstream https://codeberg.org/forgejo/forgejo.git || true
+          git fetch upstream forgejo
+
+      - name: Merge upstream/forgejo
+        id: merge
+        run: |
+          git checkout -B sync/upstream-forgejo origin/master
+          if git merge --no-ff upstream/forgejo -m "merge: upstream/forgejo into sync branch"; then
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort || true
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push sync branch
+        if: steps.merge.outputs.conflict == 'false'
+        run: git push -u origin sync/upstream-forgejo --force-with-lease
+
+      - name: Open pull request
+        if: steps.merge.outputs.conflict == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh pr list --head sync/upstream-forgejo --state open --json number --jq 'length' | grep -qx '0'; then
+            gh pr create \
+              --base master \
+              --head sync/upstream-forgejo \
+              --title "chore: merge upstream Forgejo" \
+              --body "Automated weekly merge of \`upstream/forgejo\` into Quad4. Review branding/ALTCHA/Sentry/compose conflicts carefully."
+          else
+            echo "PR already open"
+          fi
+
+      - name: Fail on conflict for visibility
+        if: steps.merge.outputs.conflict == 'true'
+        run: |
+          echo "Upstream merge conflict. Run contrib/quad4/sync-upstream.sh locally and resolve."
+          exit 1
