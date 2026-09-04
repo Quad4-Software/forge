@@ -1,0 +1,32 @@
+Quad4 smart fork of Forgejo
+===========================
+
+Remotes
+  upstream  https://codeberg.org/forgejo/forgejo.git  (fetch only, push disabled)
+  origin    your own host (add with contrib/quad4/add-origin.sh)
+
+Branches
+  forgejo   tracks upstream/forgejo (clean Forgejo tip, do not commit here)
+  quad4     your customizations live here (default working branch)
+
+Sync upstream into your fork
+  git checkout quad4
+  contrib/quad4/sync-upstream.sh
+
+Branding
+  Default theme: quad4-dark
+  Theme source: web_src/css/themes/theme-quad4-dark.css
+  Logo master: contrib/quad4/brand/logo-transparent.png
+  Raw AI export: contrib/quad4/brand/logo-1024.png / logo-raw.png
+  SVG files are PNG embeds (do not hand-draw vectors)
+  Rebuild: contrib/quad4/rebuild-brand.sh
+
+GitHub
+  origin  git@github.com:Quad4-Software/forge.git
+  default branch: master
+  GHCR    ghcr.io/quad4-software/forge:dev|latest
+          ghcr.io/quad4-software/forge-rootless:dev|latest
+  Actions .github/workflows/{ci,container,release}.yml
+
+License
+  Forgejo is GPLv3+. Distributed changes to this tree must stay GPLv3+ compatible.

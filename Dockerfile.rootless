@@ -55,16 +55,16 @@ RUN chmod 644 /go/src/forgejo.org/contrib/autocompletion/bash_autocomplete
 
 FROM data.forgejo.org/oci/alpine:3.24
 ARG RELEASE_VERSION
-LABEL maintainer="contact@forgejo.org" \
-      org.opencontainers.image.authors="Forgejo" \
-      org.opencontainers.image.url="https://forgejo.org" \
-      org.opencontainers.image.documentation="https://forgejo.org/download/#container-image" \
-      org.opencontainers.image.source="https://codeberg.org/forgejo/forgejo" \
+LABEL maintainer="Quad4 Software" \
+      org.opencontainers.image.authors="Quad4 Software" \
+      org.opencontainers.image.url="https://github.com/Quad4-Software/forge" \
+      org.opencontainers.image.documentation="https://github.com/Quad4-Software/forge" \
+      org.opencontainers.image.source="https://github.com/Quad4-Software/forge" \
       org.opencontainers.image.version="${RELEASE_VERSION}" \
-      org.opencontainers.image.vendor="Forgejo" \
+      org.opencontainers.image.vendor="Quad4 Software" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
-      org.opencontainers.image.title="Forgejo. Beyond coding. We forge." \
-      org.opencontainers.image.description="Forgejo is a self-hosted lightweight software forge. Easy to install and low maintenance, it just does the job."
+      org.opencontainers.image.title="Quad4 Forge (rootless)" \
+      org.opencontainers.image.description="Quad4 Forge is a self-hosted charcoal-dark software forge."
 
 EXPOSE 2222 3000
 

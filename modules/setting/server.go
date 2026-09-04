@@ -143,8 +143,8 @@ func generateDisplayName() string {
 
 func loadServerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("server")
-	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Forgejo: Beyond coding. We Forge.")
-	AppSlogan = rootCfg.Section("").Key("APP_SLOGAN").MustString("")
+	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Quad4 Forge")
+	AppSlogan = rootCfg.Section("").Key("APP_SLOGAN").MustString("Charcoal. Code. Forge.")
 	AppDisplayNameFormat = rootCfg.Section("").Key("APP_DISPLAY_NAME_FORMAT").MustString("{APP_NAME}: {APP_SLOGAN}")
 	AppDisplayName = generateDisplayName()
 	Domain = sec.Key("DOMAIN").MustString("localhost")
