@@ -21,14 +21,15 @@ Branding
   Rebuild: contrib/quad4/rebuild-brand.sh
 
 DevOps platform features
-  ALTCHA captcha (embedded or remote): [service] CAPTCHA_TYPE=altcha
+  ALTCHA captcha (embedded in Forge): CAPTCHA_TYPE=altcha
   Docs: https://altcha.org/docs/ https://altcha.org/docs/integration/quick-start/
-  GlitchTip/Sentry: [sentry] ENABLED + DSN (backend + frontend)
+  Optional external Sentry/GlitchTip DSN via [sentry] (not shipped in compose)
 
 Compose
-  docker-compose.yml           local stack (+ profiles monitoring, altcha-remote)
+  docker-compose.yml           hardened local stack (forge + postgres + redis)
   docker-compose.coolify.yml   Coolify-ready (https://coolify.io/docs/knowledge-base/docker/compose)
   .env.example                 copy to .env
+  Hardening: no-new-privileges, cap_drop ALL, non-root users, healthchecks, resource limits
 
 Images
   Dockerfile.rootless          multi-stage, digest-pinned bases, USER 1000, HEALTHCHECK

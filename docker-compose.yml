@@ -1,14 +1,17 @@
-# Quad4 Forge local/dev stack
-# Usage:
+# Quad4 Forge stack (hardened)
+# ALTCHA is embedded in Forge (GET /altcha/challenge). No separate captcha service.
+#
 #   cp .env.example .env
 #   docker compose up -d
-# Profiles:
-#   --profile monitoring   GlitchTip (Sentry-compatible)
-#   --profile altcha-remote  optional GateCHA server (remote ALTCHA)
-#
-# Default ALTCHA mode is embedded (Forge serves /altcha/challenge).
 
 name: quad4-forge
+
+x-security: &security
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
 
 x-forge-env: &forge-env
   USER_UID: "1000"
@@ -32,13 +35,12 @@ x-forge-env: &forge-env
   FORGEJO__queue__TYPE: redis
   FORGEJO__queue__CONN_STR: redis://redis:6379/2
   FORGEJO__metrics__ENABLED: ${METRICS_ENABLED:-true}
-  FORGEJO__service__ENABLE_CAPTCHA: ${ENABLE_CAPTCHA:-true}
-  FORGEJO__service__CAPTCHA_TYPE: ${CAPTCHA_TYPE:-altcha}
+  FORGEJO__service__ENABLE_CAPTCHA: "true"
+  FORGEJO__service__CAPTCHA_TYPE: altcha
   FORGEJO__service__REQUIRE_CAPTCHA_FOR_LOGIN: ${REQUIRE_CAPTCHA_FOR_LOGIN:-false}
-  FORGEJO__service__ALTCHA_MODE: ${ALTCHA_MODE:-embedded}
+  FORGEJO__service__ALTCHA_MODE: embedded
   FORGEJO__service__ALTCHA_HMAC_KEY: ${ALTCHA_HMAC_KEY:?}
-  FORGEJO__service__ALTCHA_CHALLENGE_URL: ${ALTCHA_CHALLENGE_URL:-}
-  FORGEJO__service__ALTCHA_VERIFY_MODE: ${ALTCHA_VERIFY_MODE:-solution}
+  FORGEJO__service__ALTCHA_VERIFY_MODE: solution
   FORGEJO__service__ALTCHA_MAX_NUMBER: ${ALTCHA_MAX_NUMBER:-100000}
   FORGEJO__sentry__ENABLED: ${SENTRY_ENABLED:-false}
   FORGEJO__sentry__DSN: ${SENTRY_DSN:-}
@@ -50,29 +52,66 @@ services:
   db:
     image: docker.io/library/postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     restart: unless-stopped
+    <<: *security
+    read_only: false
     environment:
       POSTGRES_DB: ${FORGE_DB_NAME:-forgejo}
       POSTGRES_USER: ${FORGE_DB_USER:-forgejo}
       POSTGRES_PASSWORD: ${FORGE_DB_PASSWORD:?}
     volumes:
       - forge-db:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /run/postgresql:size=16m,mode=0755
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
 
   redis:
     image: docker.io/library/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
     restart: unless-stopped
-    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    user: "999:999"
+    <<: *security
+    command:
+      - redis-server
+      - --save
+      - "60"
+      - "1"
+      - --loglevel
+      - warning
+      - --protected-mode
+      - "yes"
+      - --bind
+      - "0.0.0.0"
     volumes:
       - forge-redis:/data
+    tmpfs:
+      - /tmp:size=16m,mode=1777
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 10
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   forge:
     image: ${FORGE_IMAGE:-ghcr.io/quad4-software/forge-rootless:dev}
@@ -82,6 +121,9 @@ services:
       args:
         RELEASE_VERSION: ${RELEASE_VERSION:-dev}
     restart: unless-stopped
+    user: "1000:1000"
+    <<: *security
+    read_only: false
     depends_on:
       db:
         condition: service_healthy
@@ -91,6 +133,9 @@ services:
       <<: *forge-env
     volumes:
       - forge-data:/var/lib/gitea
+    tmpfs:
+      - /tmp:size=256m,mode=1777,uid=1000,gid=1000
+      - /var/tmp:size=64m,mode=1777,uid=1000,gid=1000
     ports:
       - "${HTTP_PORT:-3000}:3000"
       - "${SSH_PORT:-2222}:2222"
@@ -98,90 +143,18 @@ services:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/healthz"]
       interval: 30s
       timeout: 5s
-      start_period: 40s
       retries: 5
-
-  # Optional GlitchTip (Sentry-compatible). Create a project, copy DSN into SENTRY_DSN.
-  glitchtip-db:
-    profiles: ["monitoring"]
-    image: docker.io/library/postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${GLITCHTIP_DB_NAME:-glitchtip}
-      POSTGRES_USER: ${GLITCHTIP_DB_USER:-glitchtip}
-      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:?}
-    volumes:
-      - glitchtip-db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  glitchtip-redis:
-    profiles: ["monitoring"]
-    image: docker.io/library/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
-    restart: unless-stopped
-    volumes:
-      - glitchtip-redis:/data
-
-  glitchtip:
-    profiles: ["monitoring"]
-    image: docker.io/glitchtip/glitchtip:v4.2@sha256:41c4c0ac813eda1c605c30ce55d72c09f4d427f30f795db1de3def43c4977c7a
-    restart: unless-stopped
-    depends_on:
-      glitchtip-db:
-        condition: service_healthy
-      glitchtip-redis:
-        condition: service_started
-    environment:
-      DATABASE_URL: postgres://${GLITCHTIP_DB_USER:-glitchtip}:${GLITCHTIP_DB_PASSWORD:?}@glitchtip-db:5432/${GLITCHTIP_DB_NAME:-glitchtip}
-      REDIS_URL: redis://glitchtip-redis:6379/0
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?}
-      PORT: "8000"
-      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8000}
-      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-noreply@localhost}
-      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
-      ENABLE_USER_REGISTRATION: ${GLITCHTIP_ENABLE_REGISTRATION:-True}
-    ports:
-      - "${GLITCHTIP_PORT:-8000}:8000"
-    volumes:
-      - glitchtip-uploads:/code/uploads
-
-  glitchtip-worker:
-    profiles: ["monitoring"]
-    image: docker.io/glitchtip/glitchtip:v4.2@sha256:41c4c0ac813eda1c605c30ce55d72c09f4d427f30f795db1de3def43c4977c7a
-    restart: unless-stopped
-    command: ["./bin/run-celery-with-beat.sh"]
-    depends_on:
-      - glitchtip
-    environment:
-      DATABASE_URL: postgres://${GLITCHTIP_DB_USER:-glitchtip}:${GLITCHTIP_DB_PASSWORD:?}@glitchtip-db:5432/${GLITCHTIP_DB_NAME:-glitchtip}
-      REDIS_URL: redis://glitchtip-redis:6379/0
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?}
-      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8000}
-      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-noreply@localhost}
-      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
-    volumes:
-      - glitchtip-uploads:/code/uploads
-
-  # Optional remote ALTCHA server (GateCHA). Set ALTCHA_MODE=remote and ALTCHA_CHALLENGE_URL.
-  gatecha:
-    profiles: ["altcha-remote"]
-    image: ghcr.io/upellift99/gatecha:latest
-    restart: unless-stopped
-    environment:
-      GATECHA_ADMIN_PASSWORD: ${GATECHA_ADMIN_PASSWORD:?}
-    volumes:
-      - gatecha-data:/app/data
-    ports:
-      - "${GATECHA_PORT:-8088}:8080"
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
 volumes:
   forge-data:
   forge-db:
   forge-redis:
-  glitchtip-db:
-  glitchtip-redis:
-  glitchtip-uploads:
-  gatecha-data:
