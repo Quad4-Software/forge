@@ -8,8 +8,8 @@
 # Cache/session/queue: Valkey (Redis-protocol compatible).
 # Required secrets: FORGE_DB_PASSWORD, ALTCHA_HMAC_KEY, RG_CHALLENGE_SECRET
 #
-# Persistent data uses named volumes (Coolify prefixes them). Config for
-# RavenGuard stays as repo bind mounts.
+# All persistent paths use named volumes (Coolify prefixes them). No host bind
+# mounts, so Coolify cannot turn missing file paths into directories.
 
 name: quad4-forge
 
@@ -139,15 +139,23 @@ services:
       retries: 5
       start_period: 45s
 
+  ravenguard-config-init:
+    image: ${RAVENGUARD_CONFIG_IMAGE:-ghcr.io/quad4-software/forge-ravenguard-config:dev}
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - ravenguard-config:/config
+
   ravenguard:
     image: ${RAVENGUARD_IMAGE:-ghcr.io/quad4-software/ravenguard:edge}
     restart: unless-stopped
     user: "65532:65532"
     <<: *security
     # Default mode is "all" (standalone edge). Do not use "proxy" (hub-agent fleet mode).
-    # Mount the whole deploy dir (Coolify turns missing file binds into directories).
     command: ["-config", "/config/ravenguard.coolify.toml"]
     depends_on:
+      ravenguard-config-init:
+        condition: service_completed_successfully
       forge:
         condition: service_healthy
     environment:
@@ -161,7 +169,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     volumes:
-      - ./deploy/ravenguard:/config:ro
+      - ravenguard-config:/config:ro
     tmpfs:
       - /tmp:size=64m,mode=1777
       - /data:size=32m,mode=1777
@@ -172,3 +180,4 @@ volumes:
   forge-data:
   forge-db:
   forge-valkey:
+  ravenguard-config:
