@@ -11,6 +11,7 @@ on:
     paths:
       - 'Dockerfile'
       - 'Dockerfile.rootless'
+      - 'deploy/ravenguard/**'
       - 'docker/**'
       - '**/*.go'
       - 'go.mod'
@@ -51,8 +52,13 @@ jobs:
         include:
           - file: Dockerfile
             suffix: ''
+            context: .
           - file: Dockerfile.rootless
             suffix: '-rootless'
+            context: .
+          - file: deploy/ravenguard/Dockerfile.config
+            suffix: '-ravenguard-config'
+            context: deploy/ravenguard
     steps:
       - name: Harden runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -107,7 +113,7 @@ jobs:
         id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           push: true
           platforms: linux/amd64,linux/arm64
