@@ -361,7 +361,7 @@ func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, erro
 		log.Info("GiteaDownloader: instance too old, skip getIssueReactions")
 		return reactions, nil
 	}
-	rl, _, err := g.client.GetIssueReactions(g.repoOwner, g.repoName, index)
+	rl, _, err := g.client.ListIssueReactions(g.repoOwner, g.repoName, index, gitea_sdk.ListIssueReactionsOptions{})
 	if err != nil {
 		return nil, err
 	}
