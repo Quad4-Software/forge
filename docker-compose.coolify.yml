@@ -145,7 +145,8 @@ services:
     user: "65532:65532"
     <<: *security
     # Default mode is "all" (standalone edge). Do not use "proxy" (hub-agent fleet mode).
-    command: ["-config", "/config/ravenguard.toml"]
+    # Mount the whole deploy dir (Coolify turns missing file binds into directories).
+    command: ["-config", "/config/ravenguard.coolify.toml"]
     depends_on:
       forge:
         condition: service_healthy
@@ -160,8 +161,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     volumes:
-      - ./deploy/ravenguard/ravenguard.coolify.toml:/config/ravenguard.toml:ro
-      - ./deploy/ravenguard/blocklists:/blocklists:ro
+      - ./deploy/ravenguard:/config:ro
     tmpfs:
       - /tmp:size=64m,mode=1777
       - /data:size=32m,mode=1777

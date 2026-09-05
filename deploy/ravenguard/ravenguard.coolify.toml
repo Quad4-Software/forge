@@ -30,9 +30,9 @@ proto_header = "X-Forwarded-Proto"
 proxy_protocol = false
 
 [blocklists]
-ip_files = ["/blocklists/ips.txt"]
-dns_files = ["/blocklists/domains.txt"]
-ua_files = ["/blocklists/ua.txt"]
+ip_files = ["/config/blocklists/ips.txt"]
+dns_files = ["/config/blocklists/domains.txt"]
+ua_files = ["/config/blocklists/ua.txt"]
 reload_interval = "30s"
 
 [allowlists]
@@ -138,7 +138,7 @@ mode = "best_effort"
 restrict_net = true
 restrict_scoped = true
 ignore_missing = true
-ro_dirs = ["/config", "/blocklists", "/etc/ssl/certs"]
+ro_dirs = ["/config", "/etc/ssl/certs"]
 rw_dirs = ["/tmp", "/data"]
 
 [sandbox.seccomp]
