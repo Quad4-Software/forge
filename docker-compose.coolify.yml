@@ -7,6 +7,9 @@
 # Forge ROOT_URL/DOMAIN reuse the RavenGuard public URL for correct links.
 # Cache/session/queue: Valkey (Redis-protocol compatible).
 # Required secrets: FORGE_DB_PASSWORD, ALTCHA_HMAC_KEY, RG_CHALLENGE_SECRET
+#
+# Persistent data uses named volumes (Coolify prefixes them). Config for
+# RavenGuard stays as repo bind mounts.
 
 name: quad4-forge
 
@@ -34,10 +37,7 @@ services:
       POSTGRES_USER: ${FORGE_DB_USER:-forgejo}
       POSTGRES_PASSWORD: ${FORGE_DB_PASSWORD:?}
     volumes:
-      - type: bind
-        source: ./data/forge-db
-        target: /var/lib/postgresql/data
-        is_directory: true
+      - forge-db:/var/lib/postgresql/data
     tmpfs:
       - /tmp:size=64m,mode=1777
       - /run/postgresql:size=16m,mode=0775,uid=70,gid=70
@@ -47,14 +47,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.10"
-          memory: 128M
 
   valkey:
     image: docker.io/valkey/valkey:8-alpine@sha256:cfb2aa4c8352930130fd45eb231a57310ac326d7323edae12b384b9270c46dda
@@ -73,10 +65,7 @@ services:
       - --bind
       - "0.0.0.0"
     volumes:
-      - type: bind
-        source: ./data/forge-valkey
-        target: /data
-        is_directory: true
+      - forge-valkey:/data
     tmpfs:
       - /tmp:size=16m,mode=1777
     healthcheck:
@@ -85,14 +74,6 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.50"
-          memory: 256M
-        reservations:
-          cpus: "0.05"
-          memory: 32M
 
   forge:
     image: ${FORGE_IMAGE:-ghcr.io/quad4-software/forge-rootless:dev}
@@ -114,8 +95,8 @@ services:
       FORGEJO__server__DOMAIN: ${SERVICE_FQDN_RAVENGUARD}
       FORGEJO__server__ROOT_URL: ${SERVICE_URL_RAVENGUARD_8080}
       FORGEJO__server__HTTP_PORT: "3000"
-      FORGEJO__server__SSH_PORT: ${SSH_PORT:-2222}
-      FORGEJO__server__START_SSH_SERVER: ${START_SSH_SERVER:-false}
+      FORGEJO__server__SSH_PORT: ${SSH_PORT:-49393}
+      FORGEJO__server__START_SSH_SERVER: ${START_SSH_SERVER:-true}
       FORGEJO__server__REVERSE_PROXY_LIMIT: "1"
       FORGEJO__server__REVERSE_PROXY_TRUSTED_PROXIES: "*"
       FORGEJO__database__DB_TYPE: postgres
@@ -143,33 +124,20 @@ services:
       FORGEJO__sentry__ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
       FORGEJO__ui__DEFAULT_THEME: quad4-dark
     volumes:
-      - type: bind
-        source: ./data/forge
-        target: /var/lib/gitea
-        is_directory: true
+      - forge-data:/var/lib/gitea
     tmpfs:
       - /tmp:size=256m,mode=1777,uid=1000,gid=1000
       - /var/tmp:size=64m,mode=1777,uid=1000,gid=1000
     expose:
       - "3000"
-    # Do not bind host :2222 by default (often taken on Coolify hosts, and
-    # START_SSH_SERVER defaults to false). For git-over-SSH set both:
-    # START_SSH_SERVER=true and SSH_HOST_PORT=<free host port>, then add:
-    # ports: ["${SSH_HOST_PORT}:2222"]
+    ports:
+      - "${SSH_HOST_PORT:-49393}:2222"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/healthz"]
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 45s
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 2G
-        reservations:
-          cpus: "0.25"
-          memory: 256M
 
   ravenguard:
     image: ${RAVENGUARD_IMAGE:-ghcr.io/quad4-software/ravenguard:edge}
@@ -192,23 +160,15 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     volumes:
-      - type: bind
-        source: ./deploy/ravenguard/ravenguard.coolify.toml
-        target: /config/ravenguard.toml
-      - type: bind
-        source: ./deploy/ravenguard/blocklists
-        target: /blocklists
-        is_directory: true
+      - ./deploy/ravenguard/ravenguard.coolify.toml:/config/ravenguard.toml:ro
+      - ./deploy/ravenguard/blocklists:/blocklists:ro
     tmpfs:
       - /tmp:size=64m,mode=1777
       - /data:size=32m,mode=1777
     expose:
       - "8080"
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.10"
-          memory: 64M
+
+volumes:
+  forge-data:
+  forge-db:
+  forge-valkey:
