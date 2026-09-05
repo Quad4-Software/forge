@@ -95,7 +95,7 @@ services:
           memory: 32M
 
   forge:
-    image: ${FORGE_IMAGE:-ghcr.io/quad4-software/forge-rootless:latest}
+    image: ${FORGE_IMAGE:-ghcr.io/quad4-software/forge-rootless:dev}
     restart: unless-stopped
     user: "1000:1000"
     <<: *security
@@ -152,8 +152,10 @@ services:
       - /var/tmp:size=64m,mode=1777,uid=1000,gid=1000
     expose:
       - "3000"
-    ports:
-      - "${SSH_HOST_PORT:-2222}:2222"
+    # Do not bind host :2222 by default (often taken on Coolify hosts, and
+    # START_SSH_SERVER defaults to false). For git-over-SSH set both:
+    # START_SSH_SERVER=true and SSH_HOST_PORT=<free host port>, then add:
+    # ports: ["${SSH_HOST_PORT}:2222"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/healthz"]
       interval: 30s
@@ -202,15 +204,6 @@ services:
       - /data:size=32m,mode=1777
     expose:
       - "8080"
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.10"
-          memory: 64M
-
     deploy:
       resources:
         limits:
