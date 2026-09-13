@@ -50,6 +50,15 @@ window = "1m"
 burst = 90
 per_path = false
 challenge_over = true
+# Per-source-prefix and site-wide pressure valves. 0 disables each.
+subnet_requests = 1000
+subnet_burst = 200
+subnet_window = "1m"
+subnet_v4_prefix = 24
+subnet_v6_prefix = 64
+global_requests = 5000
+global_burst = 1000
+global_window = "1m"
 
 # Git HTTP / LFS need larger bodies than a typical website WAF default.
 [protect]
@@ -61,6 +70,8 @@ max_concurrent_global = 8192
 max_concurrent_per_client = 48
 ban_after_strikes = 8
 ban_ttl = "10m"
+# Repeat offenders: ban_ttl doubles per new ban, capped at 2^ban_escalation.
+ban_escalation = 4
 attack_block = true
 attack_score = 90
 write_method_cost = 2
@@ -80,6 +91,12 @@ missing_sec_fetch_score = 15
 high_404_threshold = 30
 high_404_window = "1m"
 high_404_action = "challenge"
+# Counts expensive upstream responses (redirects, 404, 410, 5xx) per client.
+penalty_threshold = 100
+penalty_window = "1m"
+penalty_action = "challenge"
+# Short public Cache-Control on uncached redirects/misses. 0 disables.
+cache_miss_ttl = "5s"
 behavior_window = "1m"
 behavior_burst_limit = 80
 behavior_burst_score = 30
@@ -109,6 +126,7 @@ enabled = false
 hash_client_ip = true
 log_ip = "hash"
 retention = "30m"
+waf_events_ttl = "24h"
 
 [ui]
 brand = "Quad4 Forge"
@@ -124,6 +142,8 @@ lang = "en"
 [logging]
 level = "info"
 format = "json"
+stats = true
+stats_interval = "30s"
 
 [sentry]
 enabled = false
