@@ -5,6 +5,7 @@ package webhook
 
 import (
 	"context"
+	"fmt"
 
 	actions_model "forgejo.org/models/actions"
 	issues_model "forgejo.org/models/issues"
@@ -890,7 +891,181 @@ func (m *webhookNotifier) PackageDelete(ctx context.Context, doer *user_model.Us
 	notifyPackage(ctx, doer, pd, api.HookPackageDeleted)
 }
 
-func (m *webhookNotifier) ActionRunNowDone(ctx context.Context, run *actions_model.ActionRun, priorStatus actions_model.Status) {
+func (m *webhookNotifier) NewWorkflowRunAttempt(ctx context.Context, run *actions_model.ActionRun) {
+	log.Debug("New attempt of workflow run %d started with status %v", run.ID, run.Status)
+
+	if run.Status.IsDone() {
+		actionRunNowDone(ctx, run, actions_model.StatusUnknown)
+	}
+}
+
+func (m *webhookNotifier) WorkflowRunStatusChanged(
+	_ context.Context, run *actions_model.ActionRun, priorStatus actions_model.Status,
+) {
+	log.Debug("Status of workflow run %d changed from %v to %v", run.ID, priorStatus, run.Status)
+
+	// Do nothing.
+}
+
+func (m *webhookNotifier) WorkflowRunCompleted(
+	ctx context.Context, run *actions_model.ActionRun, priorStatus actions_model.Status,
+) {
+	log.Debug("Workflow run %d completed with status %v", run.ID, run.Status)
+
+	if run.Status.IsDone() {
+		actionRunNowDone(ctx, run, priorStatus)
+	}
+}
+
+func (m *webhookNotifier) NewWorkflowJobAttempt(ctx context.Context, job *actions_model.ActionRunJob) {
+	log.Debug("New attempt of job %d", job.ID)
+
+	doer := job.Run.TriggerUser
+
+	source := EventSource{
+		Repository: job.Run.Repo,
+		Owner:      doer,
+	}
+
+	permission, err := access_model.GetUserRepoPermission(ctx, job.Run.Repo, doer)
+	if err != nil {
+		log.Error("GetUserRepoPermission: %v", err)
+		return
+	}
+
+	payloadJob, err := convert.ToActionRunJob(ctx, job, nil)
+	if err != nil {
+		log.Error("ToActionRunJob: %v", err)
+		return
+	}
+
+	payload := &api.WorkflowJobPayload{
+		Action:     api.HookNewWorkflowJobAttempt,
+		Job:        payloadJob,
+		Run:        convert.ToActionRun(ctx, job.Run, doer),
+		Repository: convert.ToRepo(ctx, job.Run.Repo, permission),
+	}
+
+	event, err := convertActionStatusToHookEventType(job.Status)
+	if err != nil {
+		log.Error("convertActionStatusToHookEventType: %v", err)
+		return
+	}
+
+	if err := PrepareWebhooks(ctx, source, event, payload); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+		return
+	}
+}
+
+func (m *webhookNotifier) WorkflowJobStatusChanged(
+	ctx context.Context, job *actions_model.ActionRunJob, priorStatus actions_model.Status,
+) {
+	log.Debug("Status of job %d changed from %s to %s", job.ID, priorStatus, job.Status)
+
+	doer := job.Run.TriggerUser
+
+	source := EventSource{
+		Repository: job.Run.Repo,
+		Owner:      doer,
+	}
+
+	permission, err := access_model.GetUserRepoPermission(ctx, job.Run.Repo, doer)
+	if err != nil {
+		log.Error("GetUserRepoPermission: %v", err)
+		return
+	}
+
+	payloadJob, err := convert.ToActionRunJob(ctx, job, nil)
+	if err != nil {
+		log.Error("ToActionRunJob: %v", err)
+		return
+	}
+
+	payload := &api.WorkflowJobPayload{
+		Action:     api.HookWorkflowJobStatusChanged,
+		Job:        payloadJob,
+		Run:        convert.ToActionRun(ctx, job.Run, doer),
+		Repository: convert.ToRepo(ctx, job.Run.Repo, permission),
+	}
+
+	event, err := convertActionStatusToHookEventType(job.Status)
+	if err != nil {
+		log.Error("convertActionStatusToHookEventType: %v", err)
+		return
+	}
+
+	if err := PrepareWebhooks(ctx, source, event, payload); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+		return
+	}
+}
+
+func (m *webhookNotifier) WorkflowJobCompleted(
+	ctx context.Context, job *actions_model.ActionRunJob, priorStatus actions_model.Status,
+) {
+	log.Debug("Job %d completed with status %s, was %s", job.ID, job.Status, priorStatus)
+
+	doer := job.Run.TriggerUser
+
+	source := EventSource{
+		Repository: job.Run.Repo,
+		Owner:      doer,
+	}
+
+	permission, err := access_model.GetUserRepoPermission(ctx, job.Run.Repo, doer)
+	if err != nil {
+		log.Error("GetUserRepoPermission: %v", err)
+		return
+	}
+
+	payloadJob, err := convert.ToActionRunJob(ctx, job, nil)
+	if err != nil {
+		log.Error("ToActionRunJob: %v", err)
+		return
+	}
+
+	payload := &api.WorkflowJobPayload{
+		Action:     api.HookWorkflowJobCompleted,
+		Job:        payloadJob,
+		Run:        convert.ToActionRun(ctx, job.Run, doer),
+		Repository: convert.ToRepo(ctx, job.Run.Repo, permission),
+	}
+
+	event, err := convertActionStatusToHookEventType(job.Status)
+	if err != nil {
+		log.Error("convertActionStatusToHookEventType: %v", err)
+		return
+	}
+
+	if err := PrepareWebhooks(ctx, source, event, payload); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+		return
+	}
+}
+
+func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
+	source := EventSource{
+		Repository: pd.Repository,
+		Owner:      pd.Owner,
+	}
+
+	apiPackage, err := convert.ToPackage(ctx, pd, sender)
+	if err != nil {
+		log.Error("Error converting package: %v", err)
+		return
+	}
+
+	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventPackage, &api.PackagePayload{
+		Action:  action,
+		Package: apiPackage,
+		Sender:  convert.ToUser(ctx, sender, nil),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func actionRunNowDone(ctx context.Context, run *actions_model.ActionRun, priorStatus actions_model.Status) {
 	source := EventSource{
 		Repository: run.Repo,
 		Owner:      run.TriggerUser,
@@ -921,57 +1096,23 @@ func (m *webhookNotifier) ActionRunNowDone(ctx context.Context, run *actions_mod
 	}
 }
 
-func (m *webhookNotifier) NewWorkflowRunAttempt(_ context.Context, run *actions_model.ActionRun) {
-	log.Debug("New attempt of workflow run %d started with status %v", run.ID, run.Status)
-
-	// Do nothing.
-}
-
-func (m *webhookNotifier) WorkflowRunStatusChanged(
-	_ context.Context, run *actions_model.ActionRun, priorStatus actions_model.Status,
-) {
-	log.Debug("Status of workflow run %d changed from %v to %v", run.ID, priorStatus, run.Status)
-
-	// Do nothing.
-}
-
-func (m *webhookNotifier) WorkflowRunCompleted(
-	ctx context.Context, run *actions_model.ActionRun, priorStatus actions_model.Status,
-) {
-	log.Debug("Workflow run %d completed with status %v", run.ID, run.Status)
-
-	m.ActionRunNowDone(ctx, run, priorStatus)
-}
-
-func (m *webhookNotifier) NewWorkflowJobAttempt(_ context.Context, job *actions_model.ActionRunJob) {
-	log.Debug("New attempt of job %d", job.ID)
-}
-
-func (m *webhookNotifier) WorkflowJobStatusChanged(_ context.Context, job *actions_model.ActionRunJob, priorStatus actions_model.Status) {
-	log.Debug("Status of job %d changed from %s to %s", job.ID, priorStatus, job.Status)
-}
-
-func (m *webhookNotifier) WorkflowJobCompleted(_ context.Context, job *actions_model.ActionRunJob, priorStatus actions_model.Status) {
-	log.Debug("Job %d completed with status %s, was %s", job.ID, job.Status, priorStatus)
-}
-
-func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
-	source := EventSource{
-		Repository: pd.Repository,
-		Owner:      pd.Owner,
-	}
-
-	apiPackage, err := convert.ToPackage(ctx, pd, sender)
-	if err != nil {
-		log.Error("Error converting package: %v", err)
-		return
-	}
-
-	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventPackage, &api.PackagePayload{
-		Action:  action,
-		Package: apiPackage,
-		Sender:  convert.ToUser(ctx, sender, nil),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+func convertActionStatusToHookEventType(status actions_model.Status) (webhook_module.HookEventType, error) {
+	switch status {
+	case actions_model.StatusBlocked:
+		return webhook_module.HookEventWorkflowJobBlocked, nil
+	case actions_model.StatusCancelled:
+		return webhook_module.HookEventWorkflowJobCancelled, nil
+	case actions_model.StatusFailure:
+		return webhook_module.HookEventWorkflowJobFailure, nil
+	case actions_model.StatusRunning:
+		return webhook_module.HookEventWorkflowJobRunning, nil
+	case actions_model.StatusSkipped:
+		return webhook_module.HookEventWorkflowJobSkipped, nil
+	case actions_model.StatusSuccess:
+		return webhook_module.HookEventWorkflowJobSuccess, nil
+	case actions_model.StatusWaiting:
+		return webhook_module.HookEventWorkflowJobWaiting, nil
+	default:
+		return "", fmt.Errorf("unsupported status: %v", status)
 	}
 }

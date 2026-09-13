@@ -25,6 +25,8 @@ import (
 	"forgejo.org/modules/git"
 	"forgejo.org/modules/json"
 	"forgejo.org/modules/log"
+	"forgejo.org/modules/markup"
+	"forgejo.org/modules/markup/markdown"
 	"forgejo.org/modules/templates"
 	"forgejo.org/modules/util"
 	"forgejo.org/modules/web"
@@ -172,6 +174,7 @@ type ViewRunInfo struct {
 	Title                string          `json:"title"`
 	TitleHTML            template.HTML   `json:"titleHTML"`
 	Status               string          `json:"status"`
+	EstimatedOutcome     string          `json:"estimatedOutcome"`
 	Description          string          `json:"description"`
 	CanCancel            bool            `json:"canCancel"`
 	CanApprove           bool            `json:"canApprove"` // the run needs an approval and the doer has permission to approve
@@ -186,9 +189,10 @@ type ViewRunInfo struct {
 }
 
 type ViewCurrentJob struct {
-	Title       string         `json:"title"`
-	Steps       []*ViewJobStep `json:"steps"`
-	AllAttempts []*TaskAttempt `json:"allAttempts"`
+	Title       string          `json:"title"`
+	Steps       []*ViewJobStep  `json:"steps"`
+	AllAttempts []*TaskAttempt  `json:"allAttempts"`
+	Summaries   []template.HTML `json:"summaries"`
 }
 
 type ViewLogs struct {
@@ -301,21 +305,14 @@ func getViewResponse(ctx *app_context.Context, req *ViewRequest, runIndex, jobIn
 	resp.State.Run.CanDelete = run.Status.IsDone() && ctx.IsUserRepoAdmin()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead of 'null' in json
 	resp.State.Run.Status = run.Status.String()
+	resp.State.Run.EstimatedOutcome = actions_model.EstimateRunOutcome(jobs).String()
 	resp.State.Run.PreExecutionError = actions_model.TranslatePreExecutionError(ctx.Locale, run)
 	resp.State.Run.PreExecutionWarnings = actions_model.TranslatePreExecutionWarning(ctx.Locale, run)
 	resp.State.Run.Description = runDescription
-
-	// It's possible for the run to be marked with a finalized status (eg. failure) because of a  single job within the
-	// run; eg. one job fails, the run fails. But other jobs can still be running. The frontend RepoActionView uses the
-	// `done` flag to indicate whether to stop querying the run's status -- so even though the run has reached a final
-	// state, it may not be time to stop polling for updates.
-	done := run.Status.IsDone()
+	resp.State.Run.Done = run.Status.IsDone()
+	resp.State.Run.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 
 	for _, v := range jobs {
-		if !v.Status.IsDone() {
-			// Ah, another job is still running. Keep the frontend polling enabled then.
-			done = false
-		}
 		canBeRerun, err := v.CanBeRerun(ctx)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
@@ -329,8 +326,6 @@ func getViewResponse(ctx *app_context.Context, req *ViewRequest, runIndex, jobIn
 			Duration: v.Duration().String(),
 		})
 	}
-	resp.State.Run.Done = done
-	resp.State.Run.CanCancel = !done && ctx.Repo.CanWrite(unit.TypeActions)
 
 	pusher := ViewUser{
 		DisplayName: run.TriggerUser.GetDisplayName(),
@@ -388,109 +383,136 @@ func getViewResponse(ctx *app_context.Context, req *ViewRequest, runIndex, jobIn
 	}
 
 	resp.State.CurrentJob.Title = current.Name
-	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead of 'null' in json
+	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0)      // marshal to '[]' instead of 'null' in json
+	resp.State.CurrentJob.Summaries = make([]template.HTML, 0) // marshal to '[]' instead of 'null' in json
 	resp.State.CurrentJob.AllAttempts = allAttempts
+	resp.Logs.StepsLog = make([]*ViewStepLog, 0) // marshal to '[]' instead of 'null' in json
 
+	// If the user is viewing an attempt that hasn't been picked up by a runner yet, no task exists.
 	var task *actions_model.ActionTask
-	// TaskID will be set only when the ActionRunJob has been picked by a runner, resulting in an ActionTask being
-	// created representing the specific task.  If current.TaskID is not set, then the user is attempting to view a job
-	// that hasn't been picked up by a runner... in this case we're not going to try to fetch the specific attempt.
-	// This helps to support the UI displaying a useful and error-free page when viewing a job that is queued but not
-	// picked, or an attempt that is queued for rerun but not yet picked.
-	if current.TaskID > 0 {
-		var err error
-		task, err = actions_model.GetTaskByJobAttempt(ctx, current.ID, attemptNumber)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return nil
-		}
-		task.Job = current
-		if err := task.LoadAttributes(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return nil
-		}
+	task, err = actions_model.GetTaskByJobAttempt(ctx, current.ID, attemptNumber)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return nil
+	} else if errors.Is(err, util.ErrNotExist) {
+		return resp
 	}
 
-	resp.Logs.StepsLog = make([]*ViewStepLog, 0) // marshal to '[]' instead of 'null' in json
-	// As noted above with TaskID; task will be nil when the job hasn't be picked yet...
-	if task != nil {
-		steps := actions.FullSteps(task)
-		for _, v := range steps {
-			resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
-				Summary:  v.Name,
-				Duration: v.Duration().String(),
-				Status:   v.Status.String(),
-			})
+	task.Job = current
+	if err := task.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return nil
+	}
+
+	resp.State.CurrentJob.Summaries, err = renderStepSummaries(ctx, task, metas)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return nil
+	}
+
+	steps := actions.FullSteps(task)
+	for _, v := range steps {
+		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
+			Summary:  v.Name,
+			Duration: v.Duration().String(),
+			Status:   v.Status.String(),
+		})
+	}
+
+	for _, cursor := range req.LogCursors {
+		if !cursor.Expanded {
+			continue
 		}
 
-		for _, cursor := range req.LogCursors {
-			if !cursor.Expanded {
-				continue
-			}
+		step := steps[cursor.Step]
 
-			step := steps[cursor.Step]
-
-			// if task log is expired, return a consistent log line
-			if task.LogExpired {
-				if cursor.Cursor == 0 {
-					resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
-						Step:   cursor.Step,
-						Cursor: 1,
-						Lines: []*ViewStepLogLine{
-							{
-								Index:   1,
-								Message: ctx.Locale.TrString("actions.runs.expire_log_message"),
-								// Timestamp doesn't mean anything when the log is expired.
-								// Set it to the task's updated time since it's probably the time when the log has expired.
-								Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
-							},
+		// if task log is expired, return a consistent log line
+		if task.LogExpired {
+			if cursor.Cursor == 0 {
+				resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
+					Step:   cursor.Step,
+					Cursor: 1,
+					Lines: []*ViewStepLogLine{
+						{
+							Index:   1,
+							Message: ctx.Locale.TrString("actions.runs.expire_log_message"),
+							// Timestamp doesn't mean anything when the log is expired.
+							// Set it to the task's updated time since it's probably the time when the log has expired.
+							Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
 						},
-						Started: int64(step.Started),
-					})
-				}
-				continue
+					},
+					Started: int64(step.Started),
+				})
 			}
-
-			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead of 'null' in json
-
-			index := step.LogIndex + cursor.Cursor
-			validCursor := cursor.Cursor >= 0 &&
-				// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
-				// So return the same cursor and empty lines to let the frontend retry.
-				cursor.Cursor < step.LogLength &&
-				// !(index < task.LogIndexes[index]) when task data is older than step data.
-				// It can be fixed by making sure write/read tasks and steps in the same transaction,
-				// but it's easier to just treat it as fetching the next line before it's ready.
-				index < int64(len(task.LogIndexes))
-
-			if validCursor {
-				length := step.LogLength - cursor.Cursor
-				offset := task.LogIndexes[index]
-				logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
-				if err != nil {
-					ctx.Error(http.StatusInternalServerError, err.Error())
-					return nil
-				}
-
-				for i, row := range logRows {
-					logLines = append(logLines, &ViewStepLogLine{
-						Index:     cursor.Cursor + int64(i) + 1, // start at 1
-						Message:   row.Content,
-						Timestamp: float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
-					})
-				}
-			}
-
-			resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
-				Step:    cursor.Step,
-				Cursor:  cursor.Cursor + int64(len(logLines)),
-				Lines:   logLines,
-				Started: int64(step.Started),
-			})
+			continue
 		}
+
+		logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead of 'null' in json
+
+		index := step.LogIndex + cursor.Cursor
+		validCursor := cursor.Cursor >= 0 &&
+			// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
+			// So return the same cursor and empty lines to let the frontend retry.
+			cursor.Cursor < step.LogLength &&
+			// !(index < task.LogIndexes[index]) when task data is older than step data.
+			// It can be fixed by making sure write/read tasks and steps in the same transaction,
+			// but it's easier to just treat it as fetching the next line before it's ready.
+			index < int64(len(task.LogIndexes))
+
+		if validCursor {
+			length := step.LogLength - cursor.Cursor
+			offset := task.LogIndexes[index]
+			logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return nil
+			}
+
+			for i, row := range logRows {
+				logLines = append(logLines, &ViewStepLogLine{
+					Index:     cursor.Cursor + int64(i) + 1, // start at 1
+					Message:   row.Content,
+					Timestamp: float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
+				})
+			}
+		}
+
+		resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
+			Step:    cursor.Step,
+			Cursor:  cursor.Cursor + int64(len(logLines)),
+			Lines:   logLines,
+			Started: int64(step.Started),
+		})
 	}
 
 	return resp
+}
+
+// renderStepSummaries loads the ActionTaskStepSummary content of the task's steps and renders them into sanitized HTML.
+// Each step's summary is rendered as its own markdown document, as to not break the layout with broken summaries.
+func renderStepSummaries(ctx *app_context.Context, task *actions_model.ActionTask, metas map[string]string) ([]template.HTML, error) {
+	summariesByStepID, err := actions_model.GetTaskStepSummariesByStepID(ctx, task.ID)
+	if err != nil {
+		return nil, fmt.Errorf("load step summaries of task %d: %w", task.ID, err)
+	}
+	rendered := make([]template.HTML, 0, len(summariesByStepID))
+	for _, step := range task.Steps {
+		summary, ok := summariesByStepID[step.ID]
+		if !ok {
+			continue
+		}
+		html, err := markdown.RenderString(&markup.RenderContext{
+			Links:   markup.Links{Base: ctx.Repo.RepoLink},
+			Metas:   metas,
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
+		}, summary.Content)
+		if err != nil {
+			return nil, fmt.Errorf("rendering summary of step %d of task %d: %w", step.Index, task.ID, err)
+		}
+		rendered = append(rendered, html)
+	}
+	return rendered, nil
 }
 
 // When used with the JS `linkAction` handler (typically a <button> with class="link-action" and a data-url), will cause

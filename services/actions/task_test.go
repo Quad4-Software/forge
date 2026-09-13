@@ -117,6 +117,7 @@ func TestDeleteTask(t *testing.T) {
 		runner := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: 41601})
 		unittest.AssertCount(t, &actions_model.ActionTaskOutput{TaskID: task.ID}, 2)
 		unittest.AssertCount(t, &actions_model.ActionTaskStep{TaskID: task.ID}, 1)
+		unittest.AssertCount(t, &actions_model.ActionTaskStepSummary{TaskID: task.ID}, 1)
 
 		_, err := actions.WriteLogs(t.Context(), task.LogFilename, 0, []*runnerv1.LogRow{{Content: "OK"}})
 		require.NoError(t, err)
@@ -134,6 +135,7 @@ func TestDeleteTask(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &actions_model.ActionTask{ID: task.ID})
 		unittest.AssertCount(t, &actions_model.ActionTaskOutput{TaskID: task.ID}, 0)
 		unittest.AssertCount(t, &actions_model.ActionTaskStep{TaskID: task.ID}, 0)
+		unittest.AssertCount(t, &actions_model.ActionTaskStepSummary{TaskID: task.ID}, 0)
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runner.ID})
 
 		// Verify that other tasks have been left alone.
@@ -167,6 +169,7 @@ func TestDeleteTask(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &actions_model.ActionTask{ID: task.ID})
 		unittest.AssertCount(t, &actions_model.ActionTaskOutput{TaskID: task.ID}, 0)
 		unittest.AssertCount(t, &actions_model.ActionTaskStep{TaskID: task.ID}, 0)
+		unittest.AssertCount(t, &actions_model.ActionTaskStepSummary{TaskID: task.ID}, 0)
 		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID})
 	})
 
@@ -324,6 +327,45 @@ func TestStopTask(t *testing.T) {
 				return run.ID == job.RunID && run.Status == actions_model.StatusCancelled
 			}),
 			actions_model.StatusRunning,
+		)
+	})
+}
+
+func TestCreateTaskForRunner(t *testing.T) {
+	t.Run("Triggers notifications", func(t *testing.T) {
+		defer unittest.OverrideFixtures("services/actions/TestCreateTaskForRunner")()
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		notifier := notify_service.NewMockNotifier(t)
+		notifier.On("Run").Return().Maybe()
+		notifier.On("WorkflowJobStatusChanged", mock.Anything, mock.Anything, mock.Anything).Return()
+
+		notify_service.RegisterNotifier(notifier)
+		defer notify_service.UnregisterNotifier(notifier)
+
+		user2 := unittest.AssertExistsAndLoadBean(t, &user.User{ID: 2})
+		repo62 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 62, OwnerID: user2.ID})
+		runnerOne := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: 41601, OwnerID: user2.ID})
+		jobOne := unittest.AssertExistsAndLoadBean(t,
+			&actions_model.ActionRunJob{ID: 47301, OwnerID: user2.ID, RepoID: repo62.ID})
+
+		requestKey := "9ac1fc24-5fd1-4a75-a85f-727d324dd963"
+
+		task, err := CreateTaskForRunner(t.Context(), runnerOne, &requestKey, nil)
+		require.NoError(t, err)
+
+		assert.Equal(t, jobOne.ID, task.JobID)
+		assert.Equal(t, runnerOne.ID, task.RunnerID)
+		assert.Equal(t, actions_model.StatusRunning, task.Status)
+		assert.Equal(t, requestKey, task.RunnerRequestKey)
+
+		notifier.AssertNumberOfCalls(t, "WorkflowJobStatusChanged", 1)
+		notifier.AssertCalled(
+			t, "WorkflowJobStatusChanged", mock.Anything,
+			mock.MatchedBy(func(eventJob *actions_model.ActionRunJob) bool {
+				return eventJob.ID == jobOne.ID && eventJob.Status == actions_model.StatusRunning
+			}),
+			actions_model.StatusWaiting,
 		)
 	})
 }
