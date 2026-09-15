@@ -17,6 +17,7 @@ import (
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/markup"
 	"forgejo.org/modules/markup/external"
+	"forgejo.org/modules/rns"
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/ssh"
 	"forgejo.org/modules/storage"
@@ -157,6 +158,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, syncAppConfForGit)
 
 	mustInitCtx(ctx, ssh.Init)
+	mustInitCtx(ctx, rns.Init)
 
 	auth_method.Init()
 	mustInit(svg.Init)

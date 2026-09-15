@@ -1252,6 +1252,15 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	// Finally, if email address is the protected email address:
 	if before, ok := strings.CutSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)); ok {
 		username := before
+		// rngcs signs commits with a bare Reticulum identity hash as the
+		// email. Resolve it through the registered identity keys.
+		if IsRNSIdentityHash(username) {
+			if user, err := GetUserByRNSIdentityHash(ctx, username); err == nil {
+				return user, nil
+			} else if !IsErrUserNotExist(err) {
+				return nil, err
+			}
+		}
 		user := &User{}
 		has, err := db.GetEngine(ctx).Where("lower_name=?", username).Get(user)
 		if err != nil {
@@ -1259,6 +1268,13 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		}
 		if has {
 			return user, nil
+		}
+	} else if IsRNSIdentityHash(email) {
+		// A bare identity hash without a domain, as produced by rngcs.
+		if user, err := GetUserByRNSIdentityHash(ctx, email); err == nil {
+			return user, nil
+		} else if !IsErrUserNotExist(err) {
+			return nil, err
 		}
 	}
 
