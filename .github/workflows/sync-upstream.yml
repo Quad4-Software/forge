@@ -50,7 +50,9 @@ jobs:
         id: merge
         run: |
           git checkout -B sync/upstream-forgejo origin/master
-          if git merge --no-ff upstream/forgejo -m "merge: upstream/forgejo into sync branch"; then
+          if git merge-base --is-ancestor upstream/forgejo origin/master; then
+            echo "uptodate=true" >> "$GITHUB_OUTPUT"
+          elif git merge --no-ff upstream/forgejo -m "merge: upstream/forgejo into sync branch"; then
             echo "conflict=false" >> "$GITHUB_OUTPUT"
           else
             git merge --abort || true
@@ -58,11 +60,15 @@ jobs:
           fi
 
       - name: Push sync branch
-        if: steps.merge.outputs.conflict == 'false'
-        run: git push -u origin sync/upstream-forgejo --force-with-lease
+        if: steps.merge.outputs.conflict == 'false' && steps.merge.outputs.uptodate != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh auth setup-git
+          git push -u origin sync/upstream-forgejo --force-with-lease
 
       - name: Open pull request
-        if: steps.merge.outputs.conflict == 'false'
+        if: steps.merge.outputs.conflict == 'false' && steps.merge.outputs.uptodate != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
