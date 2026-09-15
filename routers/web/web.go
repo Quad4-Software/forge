@@ -1373,9 +1373,9 @@ func registerRoutes(m *web.Route) {
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.TreeList)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.TreeList)
 		}, reqRepoCodeReader)
-		m.Get("/compare", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+		m.Get("/compare", common.RateLimitExpensiveEndpoints, repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
-			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
+			Get(common.RateLimitExpensiveEndpoints, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 		m.Group("/{type:^(issues|pulls)$}", func() {
 			m.Group("/{index}", func() {
@@ -1717,7 +1717,7 @@ func registerRoutes(m *web.Route) {
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/blob_excerpt", func() {
-			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
+			m.Get("/{sha}", common.RateLimitExpensiveEndpoints, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
 		}, func(ctx *context.Context) gocontext.CancelFunc {
 			if ctx.FormBool("wiki") {
 				ctx.Data["PageIsWiki"] = true

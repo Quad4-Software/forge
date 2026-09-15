@@ -529,7 +529,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		headBranchRef = git.TagPrefix + ci.HeadBranch
 	}
 
-	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
+	ci.CompareInfo, err = common.GetCompareInfoCached(ctx, baseRepo, ci.HeadRepo, ci.HeadGitRepo, baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
@@ -885,6 +885,10 @@ func ExcerptBlob(ctx *context.Context) {
 		defer gitRepo.Close()
 	}
 	chunkSize := gitdiff.BlobExcerptChunkSize
+	if idxLeft < 0 || idxRight < 0 || lastLeft < 0 || lastRight < 0 || leftHunkSize < 0 || rightHunkSize < 0 {
+		ctx.Error(http.StatusBadRequest, "invalid excerpt indexes")
+		return
+	}
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCommit")
@@ -909,7 +913,11 @@ func ExcerptBlob(ctx *context.Context) {
 		if direction == "down" {
 			offset = 0
 		}
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
+		// The scan size is derived from user-controlled indexes; cap it so a
+		// request cannot force an arbitrarily large portion of the blob to be
+		// read line by line.
+		scanSize := min(idxRight-lastRight+offset, chunkSize*500)
+		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, scanSize)
 		leftHunkSize = 0
 		rightHunkSize = 0
 		idxLeft = lastLeft

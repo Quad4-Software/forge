@@ -220,6 +220,7 @@ func LoadSettings() {
 	loadServiceFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
 	loadCacheFrom(CfgProvider)
+	loadRateLimitFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
 	loadCorsFrom(CfgProvider)
 	loadMailsFrom(CfgProvider)

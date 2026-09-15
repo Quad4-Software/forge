@@ -133,6 +133,18 @@ func concurrencySafeGet[T any](key string, getFunc func() (T, error), convertFun
 	return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
 }
 
+// Get returns the key value from cache with callback when no key exists in cache.
+// The cached value must be assignable to T, otherwise the value is recomputed.
+func Get[T any](key string, getFunc func() (T, error)) (T, error) {
+	return concurrencySafeGet(key, getFunc, func(cached any) (T, error) {
+		if value, ok := cached.(T); ok {
+			return value, nil
+		}
+		var zero T
+		return zero, ErrInconvertible
+	})
+}
+
 // GetString returns the key value from cache with callback when no key exists in cache
 func GetString(key string, getFunc func() (string, error)) (string, error) {
 	v, err := concurrencySafeGet(key, getFunc, func(cached any) (string, error) {
