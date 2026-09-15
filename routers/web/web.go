@@ -821,6 +821,11 @@ func registerRoutes(m *web.Route) {
 		m.Combo("/keys").Get(user_setting.Keys).
 			Post(web.Bind(forms.AddKeyForm{}), user_setting.KeysPost)
 		m.Post("/keys/delete", user_setting.DeleteKey)
+		m.Combo("/rns_keys").Get(user_setting.RNSKeys).
+			Post(web.Bind(forms.AddRNSKeyForm{}), user_setting.RNSKeysPost)
+		m.Post("/rns_keys/verify", web.Bind(forms.VerifyRNSKeyForm{}), user_setting.RNSKeysVerifyPost)
+		m.Post("/rns_keys/resend", user_setting.ResendRNSKeyVerification)
+		m.Post("/rns_keys/delete", user_setting.RNSKeyDelete)
 		m.Group("/packages", func() {
 			m.Get("", user_setting.Packages)
 			m.Group("/rules", func() {
@@ -869,7 +874,7 @@ func registerRoutes(m *web.Route) {
 			m.Post("/unblock", user_setting.UnblockUser)
 		})
 		m.Get("/storage_overview", user_setting.StorageOverview)
-	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled, "EnableQuota", setting.Quota.Enabled))
+	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled, "EnableQuota", setting.Quota.Enabled, "EnableRNS", setting.RNS.Enabled))
 
 	m.Group("/user", func() {
 		m.Get("/activate", auth.Activate)

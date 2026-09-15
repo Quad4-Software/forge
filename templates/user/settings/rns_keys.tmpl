@@ -1,0 +1,91 @@
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings rnskeys")}}
+	<div class="user-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "settings.rns_keys"}}
+			<div class="ui right">
+				<button id="add-rns-button" class="ui primary tiny show-panel toggle button" data-panel="#add-rns-key-panel">
+					{{ctx.Locale.Tr "settings.rns_add_key"}}
+				</button>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			<div class="{{if not .Err_IdentityHash}}tw-hidden{{end}} tw-mb-4" id="add-rns-key-panel">
+				<form class="ui form" action="{{.Link}}" method="post">
+					<div class="field {{if .Err_Title}}error{{end}}">
+						<label for="rns-key-title">{{ctx.Locale.Tr "settings.key_name"}}</label>
+						<input id="rns-key-title" name="title" value="{{.title}}" autofocus required maxlength="50">
+					</div>
+					<div class="field {{if .Err_IdentityHash}}error{{end}}">
+						<label for="rns-key-hash">{{ctx.Locale.Tr "settings.rns_identity_hash"}}</label>
+						<input id="rns-key-hash" name="identity_hash" value="{{.identity_hash}}" required minlength="32" maxlength="32" placeholder="0123456789abcdef0123456789abcdef">
+						<span class="help">{{ctx.Locale.Tr "settings.rns_identity_hash_help"}}</span>
+					</div>
+					<button class="ui primary button">
+						{{ctx.Locale.Tr "settings.rns_add_key"}}
+					</button>
+					<button id="cancel-rns-button" class="ui hide-panel button" data-panel="#add-rns-key-panel">
+						{{ctx.Locale.Tr "cancel"}}
+					</button>
+				</form>
+			</div>
+			<div id="keys-rns" class="flex-list">
+				<div class="flex-item">
+					<p>{{ctx.Locale.Tr "settings.rns_desc"}}</p>
+					{{if .GitDestination}}
+						<p>{{ctx.Locale.Tr "settings.rns_git_destination" (printf "rns://%s" .GitDestination)}}</p>
+					{{end}}
+				</div>
+				{{range .RNSKeys}}
+					<div class="flex-item">
+						<div class="flex-item-leading">
+							<span class="text {{if .Verified}}green{{end}}">{{svg "octicon-key" 32}}</span>
+						</div>
+						<div class="flex-item-main">
+							{{if .Verified}}
+								<div class="flex-item-title flex-text-block">{{svg "octicon-verified"}}{{ctx.Locale.Tr "settings.rns_key_is_verified"}}</div>
+							{{end}}
+							<div class="flex-item-title">{{.Name}}</div>
+							<div class="flex-item-body">{{.IdentityHash}}</div>
+							<div class="flex-item-body">
+								<p>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} — {{ctx.Locale.Tr "settings.last_used"}} {{DateUtils.AbsoluteShort .UpdatedUnix}}</p>
+							</div>
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui red tiny button delete-button" data-modal-id="delete-rns" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+								{{ctx.Locale.Tr "settings.delete_key"}}
+							</button>
+						</div>
+					</div>
+					{{if and (not .Verified) $.EnableLXMF}}
+						<div class="ui segment">
+							<h4>{{ctx.Locale.Tr "settings.rns_verification_required"}}</h4>
+							<p>{{ctx.Locale.Tr "settings.rns_verification_desc"}}</p>
+							<form class="ui form" action="{{$.Link}}/verify" method="post">
+								<input type="hidden" name="key_id" value="{{.ID}}">
+								<div class="field">
+									<label for="rns-verify-code-{{.ID}}">{{ctx.Locale.Tr "settings.rns_verification_code"}}</label>
+									<input id="rns-verify-code-{{.ID}}" name="code" required>
+								</div>
+								<button class="ui primary button">{{ctx.Locale.Tr "settings.rns_verify"}}</button>
+							</form>
+							<form class="ui form" action="{{$.Link}}/resend" method="post">
+								<input type="hidden" name="id" value="{{.ID}}">
+								<button class="ui basic tiny button">{{ctx.Locale.Tr "settings.rns_resend_code"}}</button>
+							</form>
+						</div>
+					{{end}}
+				{{end}}
+			</div>
+		</div>
+		<div class="ui g-modal-confirm delete modal" id="delete-rns">
+			<div class="header">
+				{{svg "octicon-trash"}}
+				{{ctx.Locale.Tr "settings.rns_key_deletion"}}
+			</div>
+			<div class="content">
+				<p>{{ctx.Locale.Tr "settings.rns_key_deletion_desc"}}</p>
+			</div>
+			{{template "base/modal_actions_confirm" .}}
+		</div>
+	</div>
+{{template "user/settings/layout_footer" .}}

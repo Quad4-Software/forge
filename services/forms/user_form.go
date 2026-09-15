@@ -330,6 +330,30 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// AddRNSKeyForm form for adding a Reticulum identity
+type AddRNSKeyForm struct {
+	Title        string `binding:"Required;MaxSize(50)"`
+	IdentityHash string `binding:"Required;MinSize(32);MaxSize(32)"`
+}
+
+// Validate validates the fields
+func (f *AddRNSKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// VerifyRNSKeyForm form for verifying a Reticulum identity
+type VerifyRNSKeyForm struct {
+	KeyID int64  `form:"key_id" binding:"Required"`
+	Code  string `form:"code" binding:"Required"`
+}
+
+// Validate validates the fields
+func (f *VerifyRNSKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 type EditVariableForm struct {
 	Name string `binding:"Required;MaxSize(255)"`
 	Data string `binding:"Required;MaxSize(65535)"`
