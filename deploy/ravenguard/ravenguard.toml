@@ -37,6 +37,7 @@ ua_files = ["/blocklists/ua.txt"]
 reload_interval = "30s"
 
 [allowlists]
+ua_files = ["/allowlists/ua.txt"]
 reload_interval = "30s"
 
 [qfeeds]
@@ -141,6 +142,9 @@ cookie_ttl = "24h"
 # Overridden by RG_CHALLENGE_SECRET (min 16 chars)
 secret = "replace-me-rg-challenge"
 path_prefix = "/_rg"
+# Package registries (go get/GOPROXY, npm, cargo, composer, ...) and the
+# REST API cannot render a JS challenge. Detect scoring still applies.
+skip_path_prefixes = ["/api/packages", "/api/v1"]
 
 [challenge.captcha]
 enabled = false
@@ -184,7 +188,7 @@ mode = "best_effort"
 restrict_net = true
 restrict_scoped = true
 ignore_missing = true
-ro_dirs = ["/config", "/blocklists", "/etc/ssl/certs"]
+ro_dirs = ["/config", "/blocklists", "/allowlists", "/etc/ssl/certs"]
 rw_dirs = ["/tmp", "/data"]
 
 [sandbox.seccomp]

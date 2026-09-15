@@ -90,7 +90,7 @@ services:
       USER_UID: "1000"
       USER_GID: "1000"
       FORGEJO__APP_NAME: ${APP_NAME:-Quad4 Forge}
-      FORGEJO__APP_SLOGAN: ${APP_SLOGAN:-Charcoal. Code. Forge.}
+      FORGEJO__APP_SLOGAN: ${APP_SLOGAN:-Coffee. Code. Forge.}
       # Public host comes from RavenGuard's Coolify domain (edge only).
       FORGEJO__server__DOMAIN: ${SERVICE_FQDN_RAVENGUARD}
       FORGEJO__server__ROOT_URL: ${SERVICE_URL_RAVENGUARD_8080}

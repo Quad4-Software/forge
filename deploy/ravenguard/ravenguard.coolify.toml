@@ -36,6 +36,7 @@ ua_files = ["/config/blocklists/ua.txt"]
 reload_interval = "30s"
 
 [allowlists]
+ua_files = ["/config/allowlists/ua.txt"]
 reload_interval = "30s"
 
 [qfeeds]
@@ -138,6 +139,9 @@ cookie_name = "rg_clear"
 cookie_ttl = "24h"
 secret = "replace-me-rg-challenge"
 path_prefix = "/_rg"
+# Package registries (go get/GOPROXY, npm, cargo, composer, ...) and the
+# REST API cannot render a JS challenge. Detect scoring still applies.
+skip_path_prefixes = ["/api/packages", "/api/v1"]
 
 [challenge.captcha]
 enabled = false

@@ -21,7 +21,7 @@ x-forge-env: &forge-env
   USER_UID: "1000"
   USER_GID: "1000"
   FORGEJO__APP_NAME: ${APP_NAME:-Quad4 Forge}
-  FORGEJO__APP_SLOGAN: ${APP_SLOGAN:-Charcoal. Code. Forge.}
+  FORGEJO__APP_SLOGAN: ${APP_SLOGAN:-Coffee. Code. Forge.}
   FORGEJO__server__DOMAIN: ${DOMAIN:-localhost}
   FORGEJO__server__ROOT_URL: ${ROOT_URL:-http://localhost:8080/}
   FORGEJO__server__HTTP_PORT: "3000"
@@ -189,6 +189,7 @@ services:
     volumes:
       - ./deploy/ravenguard/ravenguard.toml:/config/ravenguard.toml:ro
       - ./deploy/ravenguard/blocklists:/blocklists:ro
+      - ./deploy/ravenguard/allowlists:/allowlists:ro
     tmpfs:
       - /tmp:size=64m,mode=1777
       - /data:size=32m,mode=1777

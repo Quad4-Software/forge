@@ -1,0 +1,8 @@
+# Substring allowlist for trusted automation. One match skips detect
+# scoring and challenge. Protect, blocklists, feeds, rate limits,
+# attack signatures, and access policies still apply.
+
+# Go toolchain: covers GOPROXY fetches against /api/packages/<owner>/go
+# and the ?go-get=1 meta import lookup on repo pages, which cannot
+# render a JS challenge.
+Go-http-client
