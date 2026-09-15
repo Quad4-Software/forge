@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Rebuild Quad4 brand assets from contrib/quad4/brand/logo-transparent.png
-# SVG outputs are PNG embeds (no hand-drawn vectors).
+# Rebuild Quad4 brand assets from contrib/quad4/brand/.
+# SVG outputs are the real vectors (quad4-mark*.svg). Rasters are derived
+# from source-mark.png: the mark is pure white on black, so luminance is
+# the alpha channel.
 set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
@@ -8,7 +10,6 @@ cd "$ROOT"
 python3 << 'PY'
 from PIL import Image
 from pathlib import Path
-import base64, io
 
 brand = Path("contrib/quad4/brand")
 assets = Path("assets")
@@ -17,15 +18,24 @@ custom = Path("custom/public/assets/img")
 for d in (pub, custom, assets):
     d.mkdir(parents=True, exist_ok=True)
 
-src = brand / "logo-transparent.png"
-if not src.exists():
-    raise SystemExit(f"missing {src}")
+src = brand / "source-mark.png"
+mark_svg = (brand / "quad4-mark.svg").read_bytes()
+mark_black_svg = (brand / "quad4-mark-black.svg").read_bytes()
+mark_on_black_svg = (brand / "quad4-mark-on-black.svg").read_bytes()
 
-master = Image.open(src).convert("RGBA")
-side = max(master.size)
-square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-square.paste(master, ((side - master.size[0]) // 2, (side - master.size[1]) // 2), master)
-master = square
+base = Image.open(src).convert("RGB")
+
+def extract(fg):
+    # fg=255: white mark on transparent; fg=0: black mark on transparent.
+    lum = base.convert("L")
+    if fg == 0:
+        lum = lum.point(lambda v: 255 - v)
+    rgba = Image.new("RGBA", base.size, (fg, fg, fg, 0))
+    rgba.putalpha(lum)
+    return rgba
+
+white_mark = extract(255)
+black_mark = extract(0)
 
 def fit(im, size, bg=None):
     canvas = Image.new("RGBA", (size, size), bg if bg else (0, 0, 0, 0))
@@ -40,35 +50,32 @@ def fit(im, size, bg=None):
         return out.convert("RGB")
     return canvas
 
-def png_bytes(im, size):
-    buf = io.BytesIO()
-    fit(im, size).save(buf, format="PNG", optimize=True)
-    return buf.getvalue()
+BLACK = (0, 0, 0, 255)
 
-def write_svg_embed(path, im, size):
-    data = base64.b64encode(png_bytes(im, size)).decode("ascii")
-    path.write_text(
-        f'''<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {size} {size}" width="{size}" height="{size}" role="img" aria-label="Quad4 Forge">
-  <image width="{size}" height="{size}" href="data:image/png;base64,{data}" xlink:href="data:image/png;base64,{data}"/>
-</svg>
-'''
-    )
+# Vector outputs
+(assets / "logo.svg").write_bytes(mark_svg)
+(assets / "favicon.svg").write_bytes(mark_on_black_svg)
+(pub / "logo.svg").write_bytes(mark_svg)
+(pub / "favicon.svg").write_bytes(mark_on_black_svg)
+(custom / "logo-light.svg").write_bytes(mark_black_svg)
+(custom / "favicon-light.svg").write_bytes(mark_on_black_svg)
 
-write_svg_embed(assets / "logo.svg", master, 512)
-write_svg_embed(assets / "favicon.svg", master, 64)
-write_svg_embed(pub / "logo.svg", master, 512)
-write_svg_embed(pub / "favicon.svg", master, 64)
+# Raster outputs. The mark is white, so anything that can sit on a light
+# surface gets a black background; dark-surface assets stay transparent.
+fit(white_mark, 512).save(pub / "logo.png", "PNG", optimize=True)
+fit(black_mark, 512).save(custom / "logo-light.png", "PNG", optimize=True)
+fit(white_mark, 200, bg=BLACK).save(pub / "avatar_default.png", "PNG", optimize=True)
+fit(white_mark, 180, bg=BLACK).save(pub / "apple-touch-icon.png", "PNG", optimize=True)
+fit(white_mark, 180, bg=BLACK).save(pub / "favicon.png", "PNG", optimize=True)
+fit(white_mark, 180, bg=BLACK).save(custom / "favicon-light.png", "PNG", optimize=True)
+fit(white_mark, 512, bg=BLACK).save(brand / "logo-512.png", "PNG", optimize=True)
+fit(white_mark, 1024, bg=BLACK).save(brand / "logo-1024.png", "PNG", optimize=True)
 
-fit(master, 512).save(pub / "logo.png", "PNG", optimize=True)
-fit(master, 200).save(pub / "avatar_default.png", "PNG", optimize=True)
-fit(master, 180, bg=(18, 18, 18, 255)).save(pub / "apple-touch-icon.png", "PNG", optimize=True)
-fit(master, 180).save(pub / "favicon.png", "PNG", optimize=True)
-fit(master, 512).save(brand / "logo-512.png", "PNG", optimize=True)
-
-ico = [fit(master, s) for s in (16, 32, 48)]
-ico[0].save(pub / "favicon.ico", format="ICO", sizes=[(16, 16), (32, 32), (48, 48)], append_images=ico[1:])
-ico[0].save(brand / "favicon.ico", format="ICO", sizes=[(16, 16), (32, 32), (48, 48)], append_images=ico[1:])
+ico = [fit(white_mark, s, bg=BLACK) for s in (16, 32, 48)]
+sizes = [(16, 16), (32, 32), (48, 48)]
+ico[0].save(pub / "favicon.ico", format="ICO", sizes=sizes, append_images=ico[1:])
+ico[0].save(brand / "favicon.ico", format="ICO", sizes=sizes, append_images=ico[1:])
+ico[0].save(custom / "favicon-light.ico", format="ICO", sizes=sizes, append_images=ico[1:])
 
 for name in [
     "logo.png", "logo.svg", "favicon.png", "favicon.svg",

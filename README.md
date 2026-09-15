@@ -1,7 +1,11 @@
 <div align="center">
-    <img src="./assets/logo.svg" alt="Quad4 Forge" width="192" align="center" />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="./assets/logo.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="./contrib/quad4/brand/quad4-mark-black.svg" />
+      <img src="./contrib/quad4/brand/quad4-mark-on-black.svg" alt="Quad4 Forge" width="192" align="center" />
+    </picture>
     <h1 align="center">Quad4 Forge</h1>
-    <p align="center">Charcoal. Code. Forge.</p>
+    <p align="center">Coffee. Code. Forge.</p>
 </div>
 
 **Quad4 Forge** is a fork of [Forgejo](https://forgejo.org/) for self-hosted Git and devops, with Quad4 branding, a charcoal/ember dark theme, embedded [ALTCHA](https://altcha.org/), optional Sentry/GlitchTip DSN hooks, and a hardened Docker stack fronted by [RavenGuard](https://github.com/Quad4-Software/ravenguard).

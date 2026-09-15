@@ -114,7 +114,7 @@ func Install(ctx *context.Context) {
 
 	// Application general settings
 	form.AppName = "Quad4 Forge"
-	form.AppSlogan = "Charcoal. Code. Forge."
+	form.AppSlogan = "Coffee. Code. Forge."
 	form.RepoRootPath = setting.RepoRootPath
 	form.LFSRootPath = setting.LFS.Storage.Path
 	form.RunUser = setting.RunUser

@@ -17,7 +17,7 @@ Sync upstream
 Branding
   Default theme: quad4-dark
   Theme source: web_src/css/themes/theme-quad4-dark.css
-  Logo master: contrib/quad4/brand/logo-transparent.png
+  Logo masters: contrib/quad4/brand/quad4-mark*.svg + source-mark.png
   Rebuild: contrib/quad4/rebuild-brand.sh
 
 DevOps platform features
