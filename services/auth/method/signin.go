@@ -13,10 +13,10 @@ import (
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/optional"
 	auth_service "forgejo.org/services/auth"
+	db_source "forgejo.org/services/auth/source/db"
 	"forgejo.org/services/auth/source/oauth2"
 	"forgejo.org/services/auth/source/smtp"
 
-	_ "forgejo.org/services/auth/source/db"   // register the sources (and below)
 	_ "forgejo.org/services/auth/source/ldap" // register the ldap source
 	_ "forgejo.org/services/auth/source/pam"  // register the pam source
 )
@@ -35,6 +35,8 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 		}
 		if has {
 			if !emailAddress.IsActivated {
+				// Keep the timing identical to an existing activated account.
+				db_source.VerifyPasswordAgainstDummyHash(password)
 				return nil, nil, user_model.ErrEmailAddressNotExist{
 					Email: username,
 				}
@@ -63,11 +65,14 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 			}
 
 			if !source.IsActive {
+				// Keep the timing identical to a failed password check.
+				db_source.VerifyPasswordAgainstDummyHash(password)
 				return nil, nil, oauth2.ErrAuthSourceNotActivated
 			}
 
 			authenticator, ok := source.Cfg.(auth_service.PasswordAuthenticator)
 			if !ok {
+				db_source.VerifyPasswordAgainstDummyHash(password)
 				return nil, nil, smtp.ErrUnsupportedLoginType
 			}
 
@@ -119,6 +124,11 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 			log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
 		}
 	}
+
+	// No source knew the user. A full password verification is still run
+	// against a synthetic hash so the response time does not reveal whether
+	// the account exists locally.
+	db_source.VerifyPasswordAgainstDummyHash(password)
 
 	if isEmail {
 		return nil, nil, user_model.ErrEmailAddressNotExist{Email: username}

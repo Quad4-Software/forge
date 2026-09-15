@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"time"
 
 	"forgejo.org/models/db"
@@ -35,6 +36,11 @@ var (
 // Used to activate the specified email address for a user.
 func EmailActivation(email string) AuthorizationPurpose {
 	return AuthorizationPurpose("email_activation:" + email)
+}
+
+// Used to verify a Reticulum identity registered by a user.
+func RNSKeyVerification(keyID int64) AuthorizationPurpose {
+	return AuthorizationPurpose("rns_key_verify:" + strconv.FormatInt(keyID, 10))
 }
 
 // AuthorizationToken represents a authorization token to a user.

@@ -31,10 +31,11 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 	var command *git.Command
 	objectFormat, _ := repo.GetObjectFormat()
 	if oldCommitID == objectFormat.EmptyObjectID().String() {
-		// When creating a new branch, the oldCommitID is empty, by using "newCommitID --not --all":
-		// List commits that are reachable by following the newCommitID, exclude "all" existing heads/tags commits
-		// So, it only lists the new commits received, doesn't list the commits already present in the receiving repository
-		command = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(newCommitID).AddArguments("--not", "--all")
+		// When creating a new branch, the oldCommitID is empty, by using "newCommitID --not --branches --tags":
+		// List commits that are reachable by following the newCommitID, exclude the commits reachable
+		// from existing branches and tags. Other refs such as refs/pull are excluded on purpose so
+		// that commits staged under them still have to pass signature verification.
+		command = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(newCommitID).AddArguments("--not", "--branches", "--tags")
 	} else {
 		command = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
 	}

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -151,9 +152,21 @@ func SearchIssues(ctx *context.APIContext) {
 		isClosed = optional.Some(false)
 	}
 
+	var isPull optional.Option[bool]
+	switch ctx.FormString("type") {
+	case "pulls":
+		isPull = optional.Some(true)
+	case "issues":
+		isPull = optional.Some(false)
+	default:
+		isPull = optional.None[bool]()
+	}
+
 	var (
-		repoIDs   []int64
-		allPublic bool
+		repoIDs      []int64
+		allPublic    bool
+		issueRepoIDs []int64
+		pullRepoIDs  []int64
 	)
 	{
 		// find repos user can access (for issue search)
@@ -209,30 +222,72 @@ func SearchIssues(ctx *context.APIContext) {
 			allPublic = true
 			opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
 		}
+
 		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err)
 			return
 		}
+
+		// Repository level access does not imply read access to the issues or
+		// pulls unit. Intersect the result with the repositories where the
+		// doer can read the unit the requested issue type belongs to. Without
+		// a type filter both unit scopes are needed for the total below.
+		unitScope := func(ut unit.Type) ([]int64, error) {
+			unitRepoIDs, err := repo_model.SearchRepositoryIDsByCondition(ctx,
+				repo_model.AccessibleRepositoryCondition(ctx.Doer(), ut))
+			if err != nil {
+				return nil, err
+			}
+			scoped := make([]int64, 0, len(repoIDs))
+			for _, id := range repoIDs {
+				if slices.Contains(unitRepoIDs, id) {
+					scoped = append(scoped, id)
+				}
+			}
+			return scoped, nil
+		}
+
+		if has, pull := isPull.Get(); has {
+			ut := unit.TypeIssues
+			if pull {
+				ut = unit.TypePullRequests
+			}
+			if repoIDs, err = unitScope(ut); err != nil {
+				ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDsByCondition", err)
+				return
+			}
+		} else {
+			if issueRepoIDs, err = unitScope(unit.TypeIssues); err != nil {
+				ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDsByCondition", err)
+				return
+			}
+			if pullRepoIDs, err = unitScope(unit.TypePullRequests); err != nil {
+				ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDsByCondition", err)
+				return
+			}
+			repoIDs = issueRepoIDs
+			for _, id := range pullRepoIDs {
+				if !slices.Contains(repoIDs, id) {
+					repoIDs = append(repoIDs, id)
+				}
+			}
+		}
 		if len(repoIDs) == 0 {
 			// no repos found, don't let the indexer return all repos
 			repoIDs = []int64{0}
+		}
+		if len(issueRepoIDs) == 0 {
+			issueRepoIDs = []int64{0}
+		}
+		if len(pullRepoIDs) == 0 {
+			pullRepoIDs = []int64{0}
 		}
 	}
 
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
-	}
-
-	var isPull optional.Option[bool]
-	switch ctx.FormString("type") {
-	case "pulls":
-		isPull = optional.Some(true)
-	case "issues":
-		isPull = optional.Some(false)
-	default:
-		isPull = optional.None[bool]()
 	}
 
 	var includedAnyLabels []int64
@@ -333,9 +388,54 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
+	// Defense in depth: even with the unit scoped repository search, verify
+	// the doer can read the unit every returned issue belongs to.
+	repoPerms := map[int64]access_model.Permission{}
+	readable := issues[:0]
+	for _, issue := range issues {
+		perm, ok := repoPerms[issue.RepoID]
+		if !ok {
+			if err := issue.LoadRepo(ctx); err != nil {
+				ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
+				return
+			}
+			perm, err = access_model.GetUserRepoPermissionWithReducer(ctx, issue.Repo, ctx.Doer(), ctx.Reducer())
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetUserRepoPermissionWithReducer", err)
+				return
+			}
+			repoPerms[issue.RepoID] = perm
+		}
+		if perm.CanReadIssuesOrPulls(issue.IsPull) {
+			readable = append(readable, issue)
+		}
+	}
+
+	if !isPull.Has() {
+		// The indexer total also counts issues the doer can not read through
+		// the issues or pulls unit, so it is recalculated per unit.
+		issuesTotal, err := issue_indexer.CountIssues(ctx, searchOpt.Copy(func(o *issue_indexer.SearchOptions) {
+			o.RepoIDs = issueRepoIDs
+			o.IsPull = optional.Some(false)
+		}))
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
+			return
+		}
+		pullsTotal, err := issue_indexer.CountIssues(ctx, searchOpt.Copy(func(o *issue_indexer.SearchOptions) {
+			o.RepoIDs = pullRepoIDs
+			o.IsPull = optional.Some(true)
+		}))
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
+			return
+		}
+		total = issuesTotal + pullsTotal
+	}
+
 	ctx.SetLinkHeader(int(total), limit)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer(), issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer(), readable))
 }
 
 // ListIssues list the issues of a repository

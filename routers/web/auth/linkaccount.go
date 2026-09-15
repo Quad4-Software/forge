@@ -17,6 +17,8 @@ import (
 	"forgejo.org/modules/util"
 	"forgejo.org/modules/web"
 	auth_method "forgejo.org/services/auth/method"
+	"forgejo.org/services/auth/source/oauth2"
+	"forgejo.org/services/auth/source/smtp"
 	"forgejo.org/services/context"
 	"forgejo.org/services/externalaccount"
 	"forgejo.org/services/forms"
@@ -83,13 +85,15 @@ func LinkAccount(ctx *context.Context) {
 }
 
 func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl base.TplName, invoker string, err error) {
+	// Always mark the account as existing so the response does not disclose
+	// whether the submitted name belongs to a registered account.
+	ctx.Data["user_exists"] = true
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
-	} else if errors.Is(err, util.ErrInvalidArgument) {
-		ctx.Data["user_exists"] = true
+	} else if errors.Is(err, util.ErrInvalidArgument) ||
+		errors.Is(err, oauth2.ErrAuthSourceNotActivated) || errors.Is(err, smtp.ErrUnsupportedLoginType) {
 		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if user_model.IsErrUserProhibitLogin(err) {
-		ctx.Data["user_exists"] = true
 		log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
 		ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 		ctx.HTML(http.StatusOK, "user/auth/prohibit_login")

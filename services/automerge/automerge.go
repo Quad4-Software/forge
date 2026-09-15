@@ -228,7 +228,9 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		log.Error("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
 	}
 
-	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true); err != nil {
+	// Pass the head commit id the checks ran against so that the merge is
+	// aborted when the pull request head has been updated in the meantime.
+	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, sha, scheduledPRM.Message, true); err != nil {
 		log.Error("pull_service.Merge: %v", err)
 		// FIXME: if merge failed, we should display some error message to the pull request page.
 		// The resolution is add a new column on automerge table named `error_message` to store the error message and displayed

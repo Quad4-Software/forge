@@ -379,8 +379,13 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 	reqFile := filepath.Join(h.getRepoDir(), file)
 
 	fi, err := os.Stat(reqFile)
-	if os.IsNotExist(err) {
-		ctx.Resp.WriteHeader(http.StatusNotFound)
+	if err != nil {
+		if os.IsNotExist(err) {
+			ctx.Resp.WriteHeader(http.StatusNotFound)
+		} else {
+			log.Error("sendFile: unable to stat %v: %v", reqFile, err)
+			ctx.Resp.WriteHeader(http.StatusInternalServerError)
+		}
 		return
 	}
 

@@ -18,6 +18,8 @@ import (
 	"forgejo.org/modules/util"
 	"forgejo.org/services/auth"
 	"forgejo.org/services/auth/source/db"
+	"forgejo.org/services/auth/source/oauth2"
+	"forgejo.org/services/auth/source/smtp"
 )
 
 // Ensure the struct implements the interface.
@@ -53,7 +55,8 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, _ auth.SessionS
 	u, source, err := UserSignIn(req.Context(), uname, passwd)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) || user_model.IsErrUserProhibitLogin(err) ||
-			errors.As(err, &db.ErrUserPasswordInvalid{}) || errors.As(err, &db.ErrUserPasswordNotSet{}) {
+			errors.As(err, &db.ErrUserPasswordInvalid{}) || errors.As(err, &db.ErrUserPasswordNotSet{}) ||
+			errors.Is(err, oauth2.ErrAuthSourceNotActivated) || errors.Is(err, smtp.ErrUnsupportedLoginType) {
 			return &auth.AuthenticationAttemptedIncorrectCredential{Error: err}
 		}
 		return &auth.AuthenticationError{Error: fmt.Errorf("basic auth UserSignIn: %w", err)}

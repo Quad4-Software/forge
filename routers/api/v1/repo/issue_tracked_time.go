@@ -84,6 +84,10 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
 
 	opts := &issues_model.FindTrackedTimesOptions{
 		ListOptions:  utils.GetListOptions(ctx),
@@ -187,6 +191,10 @@ func AddTime(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
 
 	if !ctx.Repo().CanUseTimetracker(ctx, issue, ctx.Doer()) {
 		if !ctx.Repo().Repository.IsTimetrackerEnabled(ctx) {
@@ -267,6 +275,10 @@ func ResetIssueTime(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
 
 	if !ctx.Repo().CanUseTimetracker(ctx, issue, ctx.Doer()) {
 		if !ctx.Repo().Repository.IsTimetrackerEnabled(ctx) {
@@ -333,6 +345,10 @@ func DeleteTime(ctx *context.APIContext) {
 
 	issue := ctx.LoadIssue("index")
 	if ctx.Written() {
+		return
+	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
 		return
 	}
 

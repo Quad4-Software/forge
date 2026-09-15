@@ -52,6 +52,14 @@ func LockIssue(ctx *context.APIContext) {
 	if issue == nil {
 		return
 	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
+	if !ctx.Repo().CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(http.StatusForbidden)
+		return
+	}
 
 	form := web.GetForm(ctx).(*api.IssueLockOption)
 
@@ -117,6 +125,14 @@ func UnlockIssue(ctx *context.APIContext) {
 	issue := ctx.LoadIssue("index")
 
 	if issue == nil {
+		return
+	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
+	if !ctx.Repo().CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 

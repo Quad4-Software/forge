@@ -20,6 +20,9 @@ func isBrowserRedirect(s string) bool {
 
 // IsRiskyRedirectURL returns true if the URL is considered risky for redirects
 func IsRiskyRedirectURL(s string) bool {
+	// Browsers strip leading and trailing whitespace from a Location header, so
+	// " //host" would still be treated as a network-path reference.
+	s = strings.TrimSpace(s)
 	if isBrowserRedirect(s) {
 		return true
 	}

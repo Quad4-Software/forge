@@ -6,8 +6,10 @@ package db
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	user_model "forgejo.org/models/user"
+	"forgejo.org/modules/auth/password/hash"
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/util"
 )
@@ -42,13 +44,44 @@ func (err ErrUserPasswordInvalid) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
+var (
+	dummyPasswordHashOnce sync.Once
+	dummyPasswordHashAlgo *hash.PasswordHashAlgorithm
+	dummyPasswordHash     string
+	dummyPasswordSalt     string
+)
+
+// VerifyPasswordAgainstDummyHash runs a full password verification against a
+// synthetic hash so that authentication attempts for nonexistent users take
+// the same amount of time as for existing users. Otherwise the difference
+// between the early return and the KDF computation is a reliable user
+// enumeration oracle.
+func VerifyPasswordAgainstDummyHash(password string) {
+	dummyPasswordHashOnce.Do(func() {
+		algo := hash.Parse(setting.PasswordHashAlgo)
+		if algo == nil {
+			return
+		}
+		dummyPasswordSalt = user_model.GetUserSalt()
+		if h, err := algo.Hash("dummy-password", dummyPasswordSalt); err == nil {
+			dummyPasswordHashAlgo = algo
+			dummyPasswordHash = h
+		}
+	})
+	if dummyPasswordHashAlgo != nil {
+		dummyPasswordHashAlgo.VerifyPassword(password, dummyPasswordHash, dummyPasswordSalt)
+	}
+}
+
 // Authenticate authenticates the provided user against the DB
 func Authenticate(ctx context.Context, user *user_model.User, login, password string) (*user_model.User, error) {
 	if user == nil {
+		VerifyPasswordAgainstDummyHash(password)
 		return nil, user_model.ErrUserNotExist{Name: login}
 	}
 
 	if !user.IsPasswordSet() {
+		VerifyPasswordAgainstDummyHash(password)
 		return nil, ErrUserPasswordNotSet{UID: user.ID, Name: user.Name}
 	} else if !user.ValidatePassword(ctx, password) {
 		return nil, ErrUserPasswordInvalid{UID: user.ID, Name: user.Name}

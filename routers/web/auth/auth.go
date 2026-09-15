@@ -31,6 +31,7 @@ import (
 	auth_service "forgejo.org/services/auth"
 	auth_method "forgejo.org/services/auth/method"
 	"forgejo.org/services/auth/source/oauth2"
+	"forgejo.org/services/auth/source/smtp"
 	"forgejo.org/services/context"
 	"forgejo.org/services/externalaccount"
 	"forgejo.org/services/forms"
@@ -245,7 +246,8 @@ func SignInPost(ctx *context.Context) {
 
 	u, source, err := auth_method.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) ||
+			errors.Is(err, oauth2.ErrAuthSourceNotActivated) || errors.Is(err, smtp.ErrUnsupportedLoginType) {
 			log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
 		} else if user_model.IsErrEmailAlreadyUsed(err) {

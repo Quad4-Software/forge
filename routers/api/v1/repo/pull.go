@@ -33,6 +33,7 @@ import (
 	"forgejo.org/modules/util"
 	"forgejo.org/modules/web"
 	"forgejo.org/routers/api/v1/utils"
+	"forgejo.org/routers/common"
 	asymkey_service "forgejo.org/services/asymkey"
 	"forgejo.org/services/automerge"
 	"forgejo.org/services/context"
@@ -1226,7 +1227,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headBranchRef = git.TagPrefix + headBranch
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranchRef, headBranchRef, false, false)
+	compareInfo, err := common.GetCompareInfoCached(ctx, baseRepo, headRepo, headGitRepo, baseBranchRef, headBranchRef, false, false)
 	if err != nil {
 		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetCompareInfo", err)

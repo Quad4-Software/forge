@@ -235,6 +235,28 @@ func HookPreReceive(ctx *app_context.PrivateContext) {
 		case refFullName.IsPull():
 			preReceivePull(ourCtx, oldCommitID, newCommitID, refFullName)
 		default:
+			if strings.HasPrefix(string(refFullName), git.PullPrefix) {
+				// A bare "refs/pull/<index>" ref would shadow the pull request
+				// refs and break future pushes to it.
+				ctx.JSON(http.StatusForbidden, private.Response{
+					UserMsg: fmt.Sprintf("Invalid ref: %s", refFullName),
+				})
+				return
+			}
+			if strings.HasPrefix(string(refFullName), "refs/replace/") {
+				// Replace refs change the contents git commands produce for
+				// server side rendering and archives, so pushing them is
+				// restricted to repository owners and admins.
+				if !ourCtx.loadPusherAndPermission() {
+					return
+				}
+				if ourCtx.opts.DeployKeyID != 0 || (!ourCtx.userPerm.IsOwner() && !ourCtx.userPerm.IsAdmin()) {
+					ctx.JSON(http.StatusForbidden, private.Response{
+						UserMsg: "Only repository owners and administrators are allowed to push to refs/replace.",
+					})
+					return
+				}
+			}
 			if ourCtx.isOverQuota {
 				ourCtx.quotaExceeded()
 				return
@@ -510,7 +532,14 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID string, refF
 		ctx.gotProtectedTags = true
 	}
 
-	isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, ctx.protectedTags, tagName, ctx.opts.UserID)
+	// A deploy key is not a user and must not inherit the repository owner
+	// identity that ServCommand reports for it, otherwise it would bypass the
+	// allowlist of protected tags.
+	pusherID := ctx.opts.UserID
+	if ctx.opts.DeployKeyID != 0 {
+		pusherID = 0
+	}
+	isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, ctx.protectedTags, tagName, pusherID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
@@ -576,6 +605,15 @@ func preReceiveFor(ctx *preReceiveContext, oldCommitID, newCommitID string, refF
 }
 
 func preReceivePull(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) { //nolint:unparam
+	// Clients may only update the head ref of a pull request. Other refs under
+	// refs/pull/, such as merge, are computed by the server.
+	if !strings.HasSuffix(string(refFullName), "/head") {
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: fmt.Sprintf("Invalid ref: %s", refFullName),
+		})
+		return
+	}
+
 	pullIndex, _ := strconv.ParseInt(refFullName.PullName(), 10, 64)
 	if pullIndex <= 0 {
 		ctx.JSON(http.StatusForbidden, private.Response{

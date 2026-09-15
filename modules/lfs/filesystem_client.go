@@ -5,6 +5,7 @@ package lfs
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -38,6 +39,11 @@ func (c *FilesystemClient) Download(ctx context.Context, objects []Pointer, call
 	for _, object := range objects {
 		p := Pointer{object.Oid, object.Size}
 
+		// The object id is part of the file path, it has to be a valid
+		// sha256 sum so it cannot point outside the objects directory.
+		if !p.IsValid() {
+			return fmt.Errorf("invalid LFS object id %q", p.Oid)
+		}
 		objectPath := c.objectPath(p.Oid)
 
 		f, err := os.Open(objectPath)
@@ -57,6 +63,9 @@ func (c *FilesystemClient) Upload(ctx context.Context, objects []Pointer, callba
 	for _, object := range objects {
 		p := Pointer{object.Oid, object.Size}
 
+		if !p.IsValid() {
+			return fmt.Errorf("invalid LFS object id %q", p.Oid)
+		}
 		objectPath := c.objectPath(p.Oid)
 
 		if err := os.MkdirAll(filepath.Dir(objectPath), os.ModePerm); err != nil {

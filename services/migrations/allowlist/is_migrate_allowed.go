@@ -85,10 +85,12 @@ func isURLAllowed(remoteURL string, doer *user_model.User, isPushMirror bool) er
 }
 
 func checkByAllowBlockList(hostName string, addrList []net.IP) error {
-	var ipAllowed bool
+	// Every resolved address has to be allowed, so that a hostname resolving to
+	// a mix of allowed and disallowed addresses does not slip through.
+	ipAllowed := len(addrList) > 0
 	var ipBlocked bool
 	for _, addr := range addrList {
-		ipAllowed = ipAllowed || allowList.MatchIPAddr(addr)
+		ipAllowed = ipAllowed && allowList.MatchIPAddr(addr)
 		ipBlocked = ipBlocked || blockList.MatchIPAddr(addr)
 	}
 	var blockedError error

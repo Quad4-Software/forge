@@ -151,6 +151,11 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 	for _, rel := range releases {
 		for _, asset := range rel.Assets {
 			if asset.DownloadURL != nil {
+				// The value comes from the dump being restored, make sure it
+				// cannot point outside the dump directory.
+				if !filepath.IsLocal(*asset.DownloadURL) {
+					return nil, fmt.Errorf("release asset %q has an invalid download path %q", asset.Name, *asset.DownloadURL)
+				}
 				*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
 			}
 		}

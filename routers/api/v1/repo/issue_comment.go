@@ -184,6 +184,10 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
 
 	opts := &issues_model.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),

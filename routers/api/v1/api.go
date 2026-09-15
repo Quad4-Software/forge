@@ -82,6 +82,7 @@ import (
 	"forgejo.org/routers/api/v1/repo"
 	"forgejo.org/routers/api/v1/settings"
 	"forgejo.org/routers/api/v1/user"
+	"forgejo.org/routers/common"
 	"forgejo.org/services/actions"
 	"forgejo.org/services/context"
 	"forgejo.org/services/forms"
@@ -822,7 +823,7 @@ func Routes() *web.Route {
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
-				m.Get("/compare/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.CompareDiff)
+				m.Get("/compare/*", common.RateLimitExpensiveEndpoints, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)

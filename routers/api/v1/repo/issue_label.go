@@ -52,6 +52,10 @@ func ListIssueLabels(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
 
 	if err := issue.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)

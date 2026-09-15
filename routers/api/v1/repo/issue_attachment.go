@@ -60,6 +60,10 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
 
 	attach := getIssueAttachmentSafeRead(ctx, issue)
 	if attach == nil {
@@ -101,6 +105,10 @@ func ListIssueAttachments(ctx *context.APIContext) {
 
 	issue := ctx.LoadIssue("index")
 	if ctx.Written() {
+		return
+	}
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
 		return
 	}
 
