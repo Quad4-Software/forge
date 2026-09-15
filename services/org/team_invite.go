@@ -10,6 +10,7 @@ import (
 	org_model "forgejo.org/models/organization"
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/setting"
+	"forgejo.org/services/lxmfnotify"
 	"forgejo.org/services/mailer"
 )
 
@@ -21,6 +22,18 @@ func CreateTeamInviteByEmail(ctx context.Context, inviter *user_model.User, team
 	}
 
 	return mailer.MailTeamInvite(ctx, inviter, team, invite)
+}
+
+// CreateTeamInviteByRNSIdentity makes a persistent invite addressed to a
+// Reticulum identity and delivers it over LXMF.
+func CreateTeamInviteByRNSIdentity(ctx context.Context, inviter *user_model.User, team *org_model.Team, identityHash string) error {
+	invite, err := org_model.CreateTeamInviteByRNSIdentity(ctx, inviter, team, identityHash)
+	if err != nil {
+		return err
+	}
+	// The invite token is a bearer credential, deliver it to the identity
+	// whether it already belongs to a user or not.
+	return lxmfnotify.SendTeamInvite(ctx, inviter, team, invite, identityHash)
 }
 
 // CreateTeamInviteByUser makes a persistent invite in db for someone with an account already and mails it.

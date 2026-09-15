@@ -6,6 +6,7 @@ package organization
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"forgejo.org/models/db"
@@ -158,6 +159,69 @@ func CreateTeamInviteByEmail(ctx context.Context, doer *user_model.User, team *T
 		OrgID:      team.OrgID,
 		TeamID:     team.ID,
 		Email:      email,
+		ExpiryUnix: getInviteExpiry(),
+	}
+
+	return invite, db.Insert(ctx, invite)
+}
+
+// rnsInvitePrefix marks a team invite addressed to a Reticulum identity
+// rather than an email address. It is stored in the email column so the
+// (team, email) uniqueness constraint keeps working for both kinds.
+const rnsInvitePrefix = "rns:"
+
+// IsRNSInvite reports whether the invite targets a Reticulum identity.
+func (invite *TeamInvite) IsRNSInvite() bool {
+	return strings.HasPrefix(invite.Email, rnsInvitePrefix)
+}
+
+// RNSIdentity returns the identity hash an RNS invite is addressed to.
+func (invite *TeamInvite) RNSIdentity() string {
+	return strings.TrimPrefix(invite.Email, rnsInvitePrefix)
+}
+
+// CreateTeamInviteByRNSIdentity creates a TeamInvite for a Reticulum identity
+// that does not have an account yet.
+func CreateTeamInviteByRNSIdentity(ctx context.Context, doer *user_model.User, team *Team, identityHash string) (*TeamInvite, error) {
+	identityHash, err := user_model.NormalizeRNSIdentityHash(identityHash)
+	if err != nil {
+		return nil, err
+	}
+	target := rnsInvitePrefix + identityHash
+
+	existingInvite := TeamInvite{
+		TeamID: team.ID,
+		Email:  target,
+	}
+	has, err := db.GetEngine(ctx).Get(&existingInvite)
+	if err != nil {
+		return nil, err
+	}
+	if has {
+		if existingInvite.IsExpired() {
+			if _, err := db.GetEngine(ctx).Delete(&existingInvite); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, ErrTeamInviteAlreadyExist{TeamID: team.ID, Email: target}
+		}
+	}
+
+	// If a verified user already owns the identity, invite that user directly.
+	if invited, err := user_model.GetUserByRNSIdentityHash(ctx, identityHash); err == nil {
+		return CreateTeamInviteForUser(ctx, doer, invited, team)
+	} else if !user_model.IsErrUserNotExist(err) && !user_model.IsErrRNSKeyNotExist(err) {
+		return nil, err
+	}
+
+	token := util.CryptoRandomString(util.RandomStringMedium)
+
+	invite := &TeamInvite{
+		Token:      token,
+		InviterID:  doer.ID,
+		OrgID:      team.OrgID,
+		TeamID:     team.ID,
+		Email:      target,
 		ExpiryUnix: getInviteExpiry(),
 	}
 

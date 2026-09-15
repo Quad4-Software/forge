@@ -139,7 +139,18 @@ func TeamsAction(ctx *context.Context) {
 		u, err = user_model.GetUserByName(ctx, uname)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				if setting.MailService != nil && validation.ValidateEmail(uname) == nil {
+				if setting.RNS.Enabled && setting.RNS.EnableLXMF && user_model.IsRNSIdentityHash(uname) {
+					if err := org_service.CreateTeamInviteByRNSIdentity(ctx, ctx.Doer, ctx.Org.Team, uname); err != nil {
+						if org_model.IsErrTeamInviteAlreadyExist(err) {
+							ctx.Flash.Error(ctx.Tr("form.duplicate_invite_to_team"))
+						} else if org_model.IsErrUserEmailAlreadyAdded(err) {
+							ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
+						} else {
+							ctx.ServerError("CreateTeamInviteByRNSIdentity", err)
+							return
+						}
+					}
+				} else if setting.MailService != nil && validation.ValidateEmail(uname) == nil {
 					if err := org_service.CreateTeamInviteByEmail(ctx, ctx.Doer, ctx.Org.Team, uname); err != nil {
 						if org_model.IsErrTeamInviteAlreadyExist(err) {
 							ctx.Flash.Error(ctx.Tr("form.duplicate_invite_to_team"))
