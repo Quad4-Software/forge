@@ -35,6 +35,7 @@ import (
 	"forgejo.org/services/context"
 	"forgejo.org/services/externalaccount"
 	"forgejo.org/services/forms"
+	"forgejo.org/services/lxmfnotify"
 	"forgejo.org/services/mailer"
 	notify_service "forgejo.org/services/notify"
 	user_service "forgejo.org/services/user"
@@ -464,6 +465,7 @@ func SignUp(ctx *context.Context) {
 	context.SetCaptchaData(ctx)
 
 	ctx.Data["PageIsSignUp"] = true
+	ctx.Data["EmailOptional"] = setting.RNS.Enabled && setting.RNS.EmailOptional
 
 	registrationDisabled(ctx)
 
@@ -497,6 +499,7 @@ func SignUpPost(ctx *context.Context) {
 	context.SetCaptchaData(ctx)
 
 	ctx.Data["PageIsSignUp"] = true
+	ctx.Data["EmailOptional"] = setting.RNS.Enabled && setting.RNS.EmailOptional
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSignUp)
@@ -508,7 +511,34 @@ func SignUpPost(ctx *context.Context) {
 		return
 	}
 
-	if emailValid, ok := form.IsEmailDomainAllowed(); !emailValid {
+	emailOptional := setting.RNS.Enabled && setting.RNS.EmailOptional
+
+	var rnsIdentity string
+	if form.RNSIdentity != "" {
+		h, err := user_model.NormalizeRNSIdentityHash(form.RNSIdentity)
+		if err != nil {
+			ctx.Data["Err_RNSIdentity"] = true
+			ctx.RenderWithErr(ctx.Tr("form.rns_identity_invalid"), tplSignUp, &form)
+			return
+		}
+		if _, err := user_model.GetRNSKeyByIdentityHash(ctx, h); err == nil {
+			ctx.Data["Err_RNSIdentity"] = true
+			ctx.RenderWithErr(ctx.Tr("settings.rns_identity_been_used"), tplSignUp, &form)
+			return
+		} else if !user_model.IsErrRNSKeyNotExist(err) {
+			ctx.ServerError("GetRNSKeyByIdentityHash", err)
+			return
+		}
+		rnsIdentity = h
+	}
+
+	if form.Email == "" {
+		if !emailOptional || rnsIdentity == "" {
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_empty"), tplSignUp, &form)
+			return
+		}
+	} else if emailValid, ok := form.IsEmailDomainAllowed(); !emailValid {
 		ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSignUp, form)
 		return
 	} else if !ok {
@@ -547,9 +577,31 @@ func SignUpPost(ctx *context.Context) {
 		Email:  form.Email,
 		Passwd: form.Password,
 	}
+	var overwrites *user_model.CreateUserOverwriteOptions
+	if u.Email == "" {
+		u.Email = fmt.Sprintf("%s@%s", strings.ToLower(u.Name), setting.Service.NoReplyAddress)
+		// Email-less signups must prove possession of the Reticulum identity
+		// through LXMF activation before the account becomes usable, even when
+		// email confirmation is disabled for regular accounts.
+		overwrites = &user_model.CreateUserOverwriteOptions{
+			IsActive: optional.Some(false),
+		}
+	}
 
-	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, nil, false) {
+	if !createUserInContext(ctx, tplSignUp, form, u, overwrites, nil, false) {
 		// error already handled
+		return
+	}
+
+	// Register the Reticulum identity before the activation code is sent so
+	// that the LXMF delivery path can find it.
+	if rnsIdentity != "" {
+		if _, err := user_model.AddRNSKey(ctx, u, u.Name, rnsIdentity, false); err != nil {
+			log.Error("AddRNSKey during registration failed: %v", err)
+		}
+	}
+
+	if !handleUserCreated(ctx, u, nil) {
 		return
 	}
 
@@ -855,6 +907,21 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		log.Error("Unable to activate email for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
+	}
+
+	// When the activation code was delivered over LXMF to the registered
+	// Reticulum identities, entering it proves possession of the identity
+	// private key, so the identities are verified as part of activation.
+	if lxmfnotify.HasPlaceholderEmail(user) {
+		if keys, err := user_model.GetRNSKeysByUserID(ctx, user.ID); err == nil {
+			for _, key := range keys {
+				if !key.Verified {
+					if err := user_model.VerifyRNSKey(ctx, key); err != nil {
+						log.Error("VerifyRNSKey on activation failed: %v", err)
+					}
+				}
+			}
+		}
 	}
 
 	log.Trace("User activated: %s", user.Name)

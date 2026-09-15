@@ -19,10 +19,17 @@
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required autocorrect="off" autocapitalize="none">
 				</div>
-				<div class="required field {{if .Err_Email}}error{{end}}">
+				<div class="{{if not .EmailOptional}}required {{end}}field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
-					<input id="email" name="email" type="email" value="{{.email}}" required>
+					<input id="email" name="email" type="email" value="{{.email}}" {{if not .EmailOptional}}required{{end}}>
 				</div>
+				{{if .EmailOptional}}
+				<div class="field {{if .Err_RNSIdentity}}error{{end}}">
+					<label for="rns_identity">{{ctx.Locale.Tr "auth.rns_identity"}}</label>
+					<input id="rns_identity" name="rns_identity" type="text" value="{{.rns_identity}}" minlength="32" maxlength="32" autocorrect="off" autocapitalize="none">
+					<span class="help">{{ctx.Locale.Tr "auth.rns_identity_help"}}</span>
+				</div>
+				{{end}}
 
 				{{if not .DisablePassword}}
 					<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"forgejo.org/models/auth"
 	user_model "forgejo.org/models/user"
@@ -20,6 +21,7 @@ import (
 	"forgejo.org/modules/web/middleware"
 	"forgejo.org/services/context"
 	"forgejo.org/services/forms"
+	"forgejo.org/services/lxmfnotify"
 	"forgejo.org/services/mailer"
 	user_service "forgejo.org/services/user"
 )
@@ -35,7 +37,7 @@ var (
 func ForgotPasswd(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
-	if setting.MailService == nil {
+	if setting.MailService == nil && !lxmfnotify.Available() {
 		log.Warn("no mail service configured")
 		ctx.Data["IsResetDisable"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
@@ -52,7 +54,7 @@ func ForgotPasswd(ctx *context.Context) {
 func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
-	if setting.MailService == nil {
+	if setting.MailService == nil && !lxmfnotify.Available() {
 		ctx.NotFound("ForgotPasswdPost", nil)
 		return
 	}
@@ -61,12 +63,34 @@ func ForgotPasswdPost(ctx *context.Context) {
 	email := ctx.FormString("email")
 	ctx.Data["Email"] = email
 
+	// The resend limit is keyed on the submitted address and applied uniformly
+	// so that the response can not be used to determine whether an email is
+	// registered, or what kind of login source the account uses.
+	limitKey := "MailResendLimit_" + strings.ToLower(email)
+	if ctx.Cache.IsExist(limitKey) {
+		ctx.Data["ResendLimited"] = true
+		ctx.HTML(http.StatusOK, tplForgotPassword)
+		return
+	}
+	if err := ctx.Cache.Put(limitKey, limitKey, 180); err != nil {
+		log.Error("Set cache(MailResendLimit) fail: %v", err)
+	}
+
+	renderResetSent := func() {
+		ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
+		ctx.Data["IsResetSent"] = true
+		ctx.HTML(http.StatusOK, tplForgotPassword)
+	}
+
 	u, err := user_model.GetUserByEmailSimple(ctx, email)
+	if err != nil && user_model.IsErrUserNotExist(err) && user_model.IsRNSIdentityHash(email) {
+		// The input may be a Reticulum identity hash rather than an email
+		// address. Resolution failure stays indistinguishable below.
+		u, err = user_model.GetUserByRNSIdentityHash(ctx, email)
+	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
-			ctx.Data["IsResetSent"] = true
-			ctx.HTML(http.StatusOK, tplForgotPassword)
+			renderResetSent()
 			return
 		}
 
@@ -75,14 +99,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	}
 
 	if !u.IsLocal() && !(u.IsOAuth2() && u.IsPasswordSet()) {
-		ctx.Data["Err_Email"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.non_local_account"), tplForgotPassword, nil)
-		return
-	}
-
-	if ctx.Cache.IsExist("MailResendLimit_" + u.LowerName) {
-		ctx.Data["ResendLimited"] = true
-		ctx.HTML(http.StatusOK, tplForgotPassword)
+		renderResetSent()
 		return
 	}
 
@@ -91,13 +108,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-		log.Error("Set cache(MailResendLimit) fail: %v", err)
-	}
-
-	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
-	ctx.Data["IsResetSent"] = true
-	ctx.HTML(http.StatusOK, tplForgotPassword)
+	renderResetSent()
 }
 
 func commonResetPassword(ctx *context.Context, shouldDeleteToken bool) (*user_model.User, *auth.TwoFactor) {
