@@ -100,10 +100,33 @@ behavior_burst_limit = 80
 behavior_burst_score = 30
 behavior_path_fanout = 50
 behavior_path_fanout_score = 25
+# Catches rotating-UA campaigns (residential proxy fleets that shuffle
+# User-Agent strings per request) per client key.
+behavior_ua_variety_limit = 4
+behavior_ua_variety_score = 30
 forge_expensive_score = 35
 behavior_forge_burst_limit = 40
 behavior_forge_burst_score = 30
 forge_rate_cost = 3
+# Request-consistency signals for headless browsers, automation frameworks,
+# and bare-HTTP tooling claiming to be real browsers.
+missing_accept_enc_score = 10
+sec_ch_ua_non_chromium_score = 15
+http10_browser_score = 15
+missing_content_type_score = 15
+long_ua_score = 15
+missing_uir_score = 10
+# Compares TLS SNI with the Host header. Only scored at the edge; ignored
+# while tls.mode is off or when running behind a proxy.
+sni_host_mismatch_score = 25
+
+# Forward-confirmed reverse-DNS verification of self-declared good crawlers
+# (Googlebot, GPTBot, Bingbot, and similar). Failed claims add spoof_score.
+# DNS errors and timeouts are inconclusive and never score.
+[detect.crawler_verify]
+enabled = true
+timeout = "250ms"
+spoof_score = 40
 
 [challenge]
 enabled = true
