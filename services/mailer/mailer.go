@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"forgejo.org/modules/base"
@@ -26,6 +27,7 @@ import (
 	"forgejo.org/modules/queue"
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/templates"
+	"forgejo.org/services/lxmfnotify"
 	notify_service "forgejo.org/services/notify"
 
 	ntlmssp "github.com/Azure/go-ntlmssp"
@@ -387,6 +389,10 @@ func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
 
 var mailQueue *queue.WorkerPoolQueue[*Message]
 
+// notifierRegistered guards one-time notifier registration so the activity
+// notifier is installed whether delivery goes through mail or LXMF.
+var notifierRegistered atomic.Bool
+
 // Sender sender for sending mail synchronously
 var Sender gomail.Sender
 
@@ -396,10 +402,13 @@ func NewContext(ctx context.Context) {
 	// before but switched install lock off), this function will be called again
 	// while mail queue is already processing tasks, and produces a race condition.
 	if setting.MailService == nil || mailQueue != nil {
+		if setting.Service.EnableNotifyMail && lxmfnotify.Configured() && !notifierRegistered.Swap(true) {
+			notify_service.RegisterNotifier(NewNotifier())
+		}
 		return
 	}
 
-	if setting.Service.EnableNotifyMail {
+	if setting.Service.EnableNotifyMail && !notifierRegistered.Swap(true) {
 		notify_service.RegisterNotifier(NewNotifier())
 	}
 

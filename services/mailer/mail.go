@@ -29,6 +29,7 @@ import (
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/timeutil"
 	"forgejo.org/modules/translation"
+	"forgejo.org/services/lxmfnotify"
 	incoming_payload "forgejo.org/services/mailer/incoming/payload"
 	"forgejo.org/services/mailer/token"
 
@@ -96,6 +97,9 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
 func SendActivateAccountMail(ctx context.Context, u *user_model.User) error {
+	if lxmfnotify.HasPlaceholderEmail(u) && lxmfnotify.Deliverable(ctx, u) {
+		return lxmfnotify.SendActivateAccount(ctx, u)
+	}
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -112,6 +116,9 @@ func SendActivateAccountMail(ctx context.Context, u *user_model.User) error {
 
 // SendResetPasswordMail sends a password reset mail to the user
 func SendResetPasswordMail(ctx context.Context, u *user_model.User) error {
+	if lxmfnotify.HasPlaceholderEmail(u) && lxmfnotify.Deliverable(ctx, u) {
+		return lxmfnotify.SendResetPassword(ctx, u)
+	}
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -597,6 +604,19 @@ func fromDisplayName(u *user_model.User) string {
 	return u.GetCompleteName()
 }
 
+// sendNoticeViaLXMF routes a security notice to the verified Reticulum
+// identities of a user without a deliverable email address. It returns true
+// when the notice was handed to LXMF delivery.
+func sendNoticeViaLXMF(ctx context.Context, u *user_model.User, subject string) bool {
+	if !lxmfnotify.HasPlaceholderEmail(u) || !lxmfnotify.DeliverableVerified(ctx, u) {
+		return false
+	}
+	locale := translation.NewLocale(u.Language)
+	lxmfnotify.SendSecurityNotice(ctx, u, subject,
+		subject+"\n\n"+locale.TrString("mail.security_notice_hint", setting.AppName, setting.AppURL))
+	return true
+}
+
 // SendPasswordChange informs the user on their primary email address that
 // their password was changed.
 func SendPasswordChange(u *user_model.User) error {
@@ -604,6 +624,10 @@ func SendPasswordChange(u *user_model.User) error {
 		return nil
 	}
 	locale := translation.NewLocale(u.Language)
+
+	if sendNoticeViaLXMF(context.Background(), u, locale.TrString("mail.password_change.subject")) {
+		return nil
+	}
 
 	data := map[string]any{
 		"locale":      locale,
@@ -662,6 +686,10 @@ func SendDisabledTOTP(ctx context.Context, u *user_model.User) error {
 	}
 	locale := translation.NewLocale(u.Language)
 
+	if sendNoticeViaLXMF(ctx, u, locale.TrString("mail.totp_disabled.subject")) {
+		return nil
+	}
+
 	hasWebAuthn, err := auth_model.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 	if err != nil {
 		return err
@@ -694,6 +722,10 @@ func SendRemovedSecurityKey(ctx context.Context, u *user_model.User, securityKey
 		return nil
 	}
 	locale := translation.NewLocale(u.Language)
+
+	if sendNoticeViaLXMF(ctx, u, locale.TrString("mail.removed_security_key.subject")) {
+		return nil
+	}
 
 	hasTwoFactor, err := auth_model.HasTwoFactorByUID(ctx, u.ID)
 	if err != nil {
@@ -728,6 +760,10 @@ func SendTOTPEnrolled(ctx context.Context, u *user_model.User) error {
 		return nil
 	}
 	locale := translation.NewLocale(u.Language)
+
+	if sendNoticeViaLXMF(ctx, u, locale.TrString("mail.totp_enrolled.subject")) {
+		return nil
+	}
 
 	hasWebAuthn, err := auth_model.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 	if err != nil {

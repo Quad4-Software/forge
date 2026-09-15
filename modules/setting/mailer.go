@@ -291,6 +291,12 @@ func loadNotifyMailFrom(rootCfg ConfigProvider) {
 	if !rootCfg.Section("service").Key("ENABLE_NOTIFY_MAIL").MustBool() {
 		return
 	} else if MailService == nil {
+		if RNS.Enabled && RNS.EnableLXMF {
+			// LXMF is a notification channel for placeholder-email users, so
+			// notify mail still runs without an SMTP service.
+			Service.EnableNotifyMail = true
+			return
+		}
 		log.Warn("Notify Mail Service: Mail Service is not enabled")
 		return
 	}

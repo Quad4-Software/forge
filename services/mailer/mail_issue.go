@@ -16,6 +16,7 @@ import (
 	"forgejo.org/modules/container"
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/setting"
+	"forgejo.org/services/lxmfnotify"
 )
 
 func fallbackMailSubject(issue *issues_model.Issue) string {
@@ -142,6 +143,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 	}
 
 	langMap := make(map[string][]*user_model.User)
+	lxmfUsers := make([]*user_model.User, 0, len(users))
 	for _, user := range users {
 		if !user.IsActive {
 			// Exclude deactivated users
@@ -164,7 +166,16 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 			continue
 		}
 
+		if lxmfnotify.HasPlaceholderEmail(user) {
+			lxmfUsers = append(lxmfUsers, user)
+			continue
+		}
+
 		langMap[user.Language] = append(langMap[user.Language], user)
+	}
+
+	if len(lxmfUsers) > 0 && lxmfnotify.Available() {
+		sendIssueActivityViaLXMF(ctx, lxmfUsers, fromMention)
 	}
 
 	for lang, receivers := range langMap {
@@ -187,7 +198,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User, additionalData ActionAdditionalData) error {
-	if setting.MailService == nil {
+	if setting.MailService == nil && !lxmfnotify.Available() {
 		// No mail service configured
 		return nil
 	}
@@ -214,4 +225,31 @@ func MailParticipants(ctx context.Context, issue *issues_model.Issue, doer *user
 		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
 	return nil
+}
+
+// sendIssueActivityViaLXMF delivers a compact activity notice to users whose
+// primary contact is a Reticulum identity instead of an email address.
+func sendIssueActivityViaLXMF(ctx *mailCommentContext, users []*user_model.User, fromMention bool) {
+	link := ctx.Issue.HTMLURL()
+	if ctx.Comment != nil {
+		link += "#" + ctx.Comment.HashTag()
+	}
+
+	ids := make([]int64, 0, len(users))
+	for _, u := range users {
+		ids = append(ids, u.ID)
+	}
+	hashMap, err := user_model.GetVerifiedRNSIdentityHashesByUserIDs(ctx, ids)
+	if err != nil {
+		log.Error("GetVerifiedRNSIdentityHashesByUserIDs: %v", err)
+		return
+	}
+
+	subject := fallbackMailSubject(ctx.Issue)
+	if fromMention {
+		subject = "Re: " + subject
+	}
+	for _, u := range users {
+		lxmfnotify.SendIssueActivity(u, hashMap[u.ID], subject, link)
+	}
 }
