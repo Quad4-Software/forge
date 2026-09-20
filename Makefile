@@ -86,6 +86,11 @@ HUGO_VERSION ?= 0.111.3
 
 GITEA_COMPATIBILITY ?= gitea-1.22.0
 
+# DEV_BASE_VERSION anchors the version string when git describe can only
+# produce a bare commit hash, which is not valid semver and fails at startup
+# with "Malformed version". Keep it in sync with main.go devBaseVersion.
+DEV_BASE_VERSION ?= 17.0.0-dev
+
 STORED_VERSION=$(shell cat $(STORED_VERSION_FILE) 2>/dev/null)
 ifneq ($(STORED_VERSION),)
   FORGEJO_VERSION ?= $(STORED_VERSION)
@@ -97,6 +102,12 @@ else
     # drop the "g" prefix prepended by git describe to the commit hash
     FORGEJO_VERSION ?= $(shell git describe --exclude '*-test' --tags --always 2>/dev/null | sed 's/^v//' | sed 's/\-g/-/')
     ifneq ($(FORGEJO_VERSION),)
+      # git describe --always falls back to a bare commit hash when no tag is
+      # reachable (shallow clone, tags not fetched). Anchor it on the dev base
+      # version so the result is valid semver.
+      ifeq ($(findstring .,$(FORGEJO_VERSION)),)
+        FORGEJO_VERSION := $(DEV_BASE_VERSION)-$(FORGEJO_VERSION)
+      endif
       ifeq ($(findstring $(GITEA_COMPATIBILITY),$(FORGEJO_VERSION)),)
         FORGEJO_VERSION := $(FORGEJO_VERSION)+$(GITEA_COMPATIBILITY)
       endif

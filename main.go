@@ -21,6 +21,7 @@ import (
 	_ "forgejo.org/modules/markup/markdown"
 	_ "forgejo.org/modules/markup/orgmode"
 
+	"github.com/hashicorp/go-version"
 	"github.com/urfave/cli/v3"
 )
 
@@ -33,11 +34,16 @@ var (
 	ReleaseVersion = ""
 )
 
+// devBaseVersion anchors builds whose version string is not valid semver,
+// e.g. when git tags are unavailable and git describe --always returns a
+// bare commit hash. Keep it in sync with DEV_BASE_VERSION in the Makefile.
+const devBaseVersion = "17.0.0-dev"
+
 var ForgejoVersion = "1.0.0"
 
 func init() {
 	setting.AppVer = Version
-	setting.ForgejoVersion = ForgejoVersion
+	setting.ForgejoVersion = normalizeForgejoVersion(ForgejoVersion)
 	setting.AppBuiltWith = formatBuiltWith()
 	setting.AppStartTime = time.Now().UTC()
 }
@@ -59,6 +65,26 @@ func main() {
 	app := cmd.NewMainApp(Version, formatReleaseVersion()+formatBuiltWith())
 	_ = cmd.RunMainApp(app, os.Args...) // all errors should have been handled by the RunMainApp
 	log.GetManager().Close()
+}
+
+// normalizeForgejoVersion coerces a non-semver build version into a
+// prerelease of the in-development base version. ForgejoVersion is recorded
+// in the database where it must parse as semver, so a bare commit hash such
+// as "aed6087+gitea-1.22.0" would otherwise abort migrations with
+// "Malformed version". Build metadata after "+" is preserved.
+func normalizeForgejoVersion(v string) string {
+	if _, err := version.NewVersion(v); err == nil {
+		return v
+	}
+	base, metadata, _ := strings.Cut(v, "+")
+	v = devBaseVersion + "-" + base
+	if metadata != "" {
+		v += "+" + metadata
+	}
+	if _, err := version.NewVersion(v); err != nil {
+		return devBaseVersion
+	}
+	return v
 }
 
 func formatReleaseVersion() string {
