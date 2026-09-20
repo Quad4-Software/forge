@@ -38,12 +38,12 @@ var RNS = struct {
 	// LXMF. Requires EnableLXMF.
 	EmailOptional bool `ini:"EMAIL_OPTIONAL"`
 }{
-	Enabled:          false,
+	Enabled:          true,
 	AnnounceInterval: 360,
 	ServeGit:         true,
 	EnableLXMF:       true,
 	AnonymousRead:    true,
-	EmailOptional:    false,
+	EmailOptional:    true,
 }
 
 func loadRNSFrom(rootCfg ConfigProvider) {

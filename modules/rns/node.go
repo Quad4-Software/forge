@@ -91,7 +91,9 @@ func SendLXMFText(identityHash, title, content string) error {
 
 // Init loads the Reticulum configuration, creates or loads the node identity,
 // starts the embedded node and registers the git and LXMF destinations. It is
-// a no-op when the [rns] section is disabled.
+// a no-op when the [rns] section is disabled. Startup failures are logged and
+// swallowed: the node is optional and the rest of Forgejo must keep running
+// without it.
 func Init(ctx context.Context) error {
 	initOnce.Do(func() {
 		initErr = initNode(ctx)
@@ -100,6 +102,13 @@ func Init(ctx context.Context) error {
 }
 
 func initNode(ctx context.Context) error {
+	if err := startNode(ctx); err != nil {
+		log.Error("Reticulum node failed to start, continuing without rns: %v", err)
+	}
+	return nil
+}
+
+func startNode(ctx context.Context) error {
 	if !setting.RNS.Enabled {
 		return nil
 	}

@@ -10,7 +10,7 @@ package hash
 //
 // It will be dealiased as per aliasAlgorithmNames whereas
 // defaultEmptyHashAlgorithmSpecification does not undergo dealiasing.
-const DefaultHashAlgorithmName = "pbkdf2_hi"
+const DefaultHashAlgorithmName = "argon2id"
 
 var DefaultHashAlgorithm *PasswordHashAlgorithm
 
@@ -20,13 +20,18 @@ var DefaultHashAlgorithm *PasswordHashAlgorithm
 // If it is necessary to change the default parameters for any hasher in future you
 // should change these values and not those in argon2.go etc.
 var aliasAlgorithmNames = map[string]string{
-	"argon2":    "argon2$2$65536$8$50",
+	// The argon2 hasher uses argon2id (argon2.IDKey). argon2id is the default
+	// algorithm and argon2 is kept as an accepted alias for it. Parameters
+	// follow the RFC 9106 second recommendation: 64MiB memory, 3 iterations,
+	// 4 lanes.
+	"argon2id":  "argon2$3$65536$4$50",
+	"argon2":    "argon2id",
 	"bcrypt":    "bcrypt$10",
 	"scrypt":    "scrypt$65536$16$2$50",
 	"pbkdf2":    "pbkdf2_v2", // pbkdf2 should default to pbkdf2_v2
 	"pbkdf2_v1": "pbkdf2$10000$50",
-	// The latest PBKDF2 password algorithm is used as the default since it doesn't
-	// use a lot of  memory and is safer to use on less powerful devices.
+	// pbkdf2_v2 does not use a lot of memory and is safer to use on less
+	// powerful devices.
 	"pbkdf2_v2": "pbkdf2$50000$50",
 	// The pbkdf2_hi password algorithm is offered as a stronger alternative to the
 	// slightly improved pbkdf2_v2 algorithm
@@ -34,8 +39,8 @@ var aliasAlgorithmNames = map[string]string{
 }
 
 var RecommendedHashAlgorithms = []string{
+	"argon2id",
 	"pbkdf2",
-	"argon2",
 	"bcrypt",
 	"scrypt",
 	"pbkdf2_hi",

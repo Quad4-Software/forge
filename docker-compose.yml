@@ -53,6 +53,8 @@ x-forge-env: &forge-env
   FORGEJO__sentry__FRONTEND_DSN: ${SENTRY_FRONTEND_DSN:-}
   FORGEJO__sentry__ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
   FORGEJO__ui__DEFAULT_THEME: quad4-dark
+  FORGEJO__rns__ENABLED: ${RNS_ENABLED:-true}
+  FORGEJO__rns__EMAIL_OPTIONAL: ${RNS_EMAIL_OPTIONAL:-true}
 
 services:
   db:
