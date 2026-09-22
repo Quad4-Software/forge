@@ -122,7 +122,6 @@ func buildAuthGroup() *auth_method.Group {
 func buildMixedAuthGroup() *auth_method.Group {
 	group := auth_method.NewGroup()
 	group.Add(&auth_method.OAuth2{})
-	group.Add(&auth_method.Basic{})
 	group.Add(&auth_method.AccessToken{
 		PermitBasic:  true,
 		PermitBearer: true,
@@ -137,6 +136,7 @@ func buildMixedAuthGroup() *auth_method.Group {
 		group.Add(&auth_method.ReverseProxy{}) // reverseproxy should before Session, otherwise the header will be ignored if user has login
 	}
 	group.Add(&auth_method.Session{})
+	group.Add(&auth_method.Basic{})
 	return group
 }
 
@@ -146,7 +146,6 @@ func buildGitLfsAuthGroup() *auth_method.Group {
 	group := auth_method.NewGroup()
 	group.Add(&auth_method.LFSToken{})
 	group.Add(&auth_method.OAuth2{})
-	group.Add(&auth_method.Basic{})
 	group.Add(&auth_method.AccessToken{
 		PermitBasic: true,
 		// PermitBearer is left at default `false`.  This behaviour is maintained from when one auth method performed
@@ -169,6 +168,7 @@ func buildGitLfsAuthGroup() *auth_method.Group {
 			CreateSession: true,
 		})
 	}
+	group.Add(&auth_method.Basic{})
 	return group
 }
 
@@ -177,7 +177,6 @@ func buildGitLfsAuthGroup() *auth_method.Group {
 func buildGitAuthGroup() *auth_method.Group {
 	group := auth_method.NewGroup()
 	group.Add(&auth_method.OAuth2{})
-	group.Add(&auth_method.Basic{})
 	group.Add(&auth_method.AccessToken{
 		PermitBasic:  true,
 		PermitBearer: true,
@@ -198,6 +197,7 @@ func buildGitAuthGroup() *auth_method.Group {
 			CreateSession: true,
 		})
 	}
+	group.Add(&auth_method.Basic{})
 	return group
 }
 
@@ -1081,6 +1081,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/invite/{token}", func() {
 			m.Get("", org.TeamInvite)
 			m.Post("", org.TeamInvitePost)
+			m.Post("/decline", org.DeclineTeamInvite)
 		})
 
 		m.Group("/{org}", func() {
@@ -1230,9 +1231,9 @@ func registerRoutes(m *web.Route) {
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.RenderNewProject)
-				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
+				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.CreateProject)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
+					m.Post("", web.Bind(forms.EditProjectColumnForm{}), org.CreateColumnInProject)
 					m.Post("/move", project.MoveColumns)
 					m.Post("/delete", org.DeleteProject)
 
@@ -1613,9 +1614,9 @@ func registerRoutes(m *web.Route) {
 			m.Get("/{id}", repo.ViewProject)
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", repo.RenderNewProject)
-				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
+				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.CreateProject)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
+					m.Post("", web.Bind(forms.EditProjectColumnForm{}), repo.CreateColumnInProject)
 					m.Post("/move", project.MoveColumns)
 					m.Post("/delete", repo.DeleteProject)
 
