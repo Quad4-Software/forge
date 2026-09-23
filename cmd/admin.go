@@ -7,6 +7,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"forgejo.org/models/db"
 	repo_model "forgejo.org/models/repo"
@@ -14,6 +15,8 @@ import (
 	"forgejo.org/modules/gitrepo"
 	"forgejo.org/modules/log"
 	repo_module "forgejo.org/modules/repository"
+	"forgejo.org/modules/setting"
+	"forgejo.org/routers/install"
 
 	"github.com/urfave/cli/v3"
 )
@@ -28,9 +31,32 @@ func cmdAdmin() *cli.Command {
 			subcmdRepoSyncReleases(),
 			subcmdRegenerate(),
 			subcmdAuth(),
-			subcmdSendMail(),
+			subcmdRegenerateSetupLink(),
 		},
 	}
+}
+
+func subcmdRegenerateSetupLink() *cli.Command {
+	return &cli.Command{
+		Name:   "regenerate-setup-link",
+		Usage:  "Generate a new secure setup link (only while the instance is not installed)",
+		Before: noDanglingArgs,
+		Action: runRegenerateSetupLink,
+	}
+}
+
+func runRegenerateSetupLink(_ context.Context, _ *cli.Command) error {
+	setting.LoadCommonSettings()
+	if setting.InstallLock {
+		fmt.Println("This instance is already installed, no setup link is needed.")
+		return nil
+	}
+	token, expiry, err := install.RegenerateSetupToken()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Secure setup link (expires %s):\n  %s\n", expiry.Format(time.RFC3339), install.SetupURL(token))
+	return nil
 }
 
 func subcmdRepoSyncReleases() *cli.Command {
@@ -65,36 +91,8 @@ func subcmdAuth() *cli.Command {
 			microcmdAuthUpdateLdapSimpleAuth(),
 			microcmdAuthAddPAM(),
 			microcmdAuthUpdatePAM(),
-			microcmdAuthAddSMTP(),
-			microcmdAuthUpdateSMTP(),
 			microcmdAuthList(),
 			microcmdAuthDelete(),
-		},
-	}
-}
-
-func subcmdSendMail() *cli.Command {
-	return &cli.Command{
-		Name:   "sendmail",
-		Usage:  "Send a message to all users",
-		Before: noDanglingArgs,
-		Action: runSendMail,
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:  "title",
-				Usage: `a title of a message`,
-				Value: "",
-			},
-			&cli.StringFlag{
-				Name:  "content",
-				Usage: "a content of a message",
-				Value: "",
-			},
-			&cli.BoolFlag{
-				Name:    "force",
-				Aliases: []string{"f"},
-				Usage:   "A flag to bypass a confirmation step",
-			},
 		},
 	}
 }

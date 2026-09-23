@@ -1,0 +1,19 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content install">
+	<div class="ui grid install-config-container">
+		<div class="sixteen wide center aligned centered column">
+			<h3 class="ui top attached header">
+				{{ctx.Locale.Tr "install.title"}}
+			</h3>
+			<div class="ui attached segment">
+				{{if .SetupTokenExpired}}
+					<p>{{ctx.Locale.Tr "install.setup_token_expired"}}</p>
+				{{else}}
+					<p>{{ctx.Locale.Tr "install.setup_token_required"}}</p>
+				{{end}}
+				<p><code>forge admin regenerate-setup-link</code></p>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

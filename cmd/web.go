@@ -125,8 +125,8 @@ func showWebStartupMessage(msg string) {
 	if setting.DefaultUILocation != time.Local {
 		log.Info("Default UI Location is %v", setting.DefaultUILocation.String())
 	}
-	if setting.MailService != nil {
-		log.Info("Mail Service Enabled: RegisterEmailConfirm=%v, Service.EnableNotifyMail=%v", setting.Service.RegisterEmailConfirm, setting.Service.EnableNotifyMail)
+	if setting.Service.EnableNotifyMail {
+		log.Info("Notification Service Enabled: RegisterEmailConfirm=%v (LXMF)", setting.Service.RegisterEmailConfirm)
 	}
 }
 
@@ -146,6 +146,10 @@ func serveInstall(_ context.Context, ctx *cli.Command) error {
 			return err
 		}
 	}
+
+	// The secure setup link goes to stdout only, never to the log files.
+	install.PrintSetupURL(os.Stdout)
+
 	c := install.Routes()
 	err := listen(c, false)
 	if err != nil {

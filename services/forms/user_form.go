@@ -11,7 +11,6 @@ import (
 
 	auth_model "forgejo.org/models/auth"
 	"forgejo.org/modules/structs"
-	"forgejo.org/modules/validation"
 	"forgejo.org/modules/web/middleware"
 	"forgejo.org/services/context"
 
@@ -40,11 +39,6 @@ type InstallForm struct {
 	AppURL       string `binding:"Required"`
 	LogRootPath  string `binding:"Required"`
 
-	SMTPAddr        string
-	SMTPPort        string
-	SMTPFrom        string
-	SMTPUser        string `binding:"OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
-	SMTPPasswd      string
 	RegisterConfirm bool
 	MailNotify      bool
 
@@ -66,12 +60,13 @@ type InstallForm struct {
 	AdminName          string `binding:"OmitEmpty;Username;MaxSize(30)" locale:"install.admin_name"`
 	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
 	AdminConfirmPasswd string
-	AdminEmail         string `binding:"OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
 
 	// ReinstallConfirmFirst we can not use 1/2/3 or A/B/C here, there is a framework bug, can not parse "reinstall_confirm_1" or "reinstall_confirm_a"
 	ReinstallConfirmFirst  bool
 	ReinstallConfirmSecond bool
 	ReinstallConfirmThird  bool
+
+	SetupKey string `form:"setup_key"`
 }
 
 // Validate validates the fields
@@ -89,26 +84,16 @@ func (f *InstallForm) Validate(req *http.Request, errs binding.Errors) binding.E
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName       string `binding:"Required;Username;MaxSize(40)"`
-	Email          string `binding:"OmitEmpty;MaxSize(254)"`
-	RNSIdentity    string `binding:"OmitEmpty;MaxSize(32)"`
-	Password       string `binding:"MaxSize(255)"`
-	Retype         string
+	UserName    string `binding:"Required;Username;MaxSize(40)"`
+	RNSIdentity string `binding:"OmitEmpty;MaxSize(32)"`
+	Password    string `binding:"MaxSize(255)"`
+	Retype      string
 }
 
 // Validate validates the fields
 func (f *RegisterForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// IsEmailDomainAllowed validates that the email address
-// provided by the user matches what has been configured .
-// The email is marked as allowed if it matches any of the
-// domains in the whitelist or if it doesn't match any of
-// domains in the blocklist, if any such list is not empty.
-func (f *RegisterForm) IsEmailDomainAllowed() (validEmail, ok bool) {
-	return validation.IsEmailDomainAllowed(f.Email)
 }
 
 // MustChangePasswordForm form for updating your password after account creation
@@ -263,17 +248,6 @@ type AvatarForm struct {
 
 // Validate validates the fields
 func (f *AvatarForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// AddEmailForm form for adding new email
-type AddEmailForm struct {
-	Email string `binding:"Required;EmailWithAllowedDomain;MaxSize(254)"`
-}
-
-// Validate validates the fields
-func (f *AddEmailForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

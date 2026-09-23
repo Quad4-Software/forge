@@ -49,7 +49,7 @@ function initPreInstall() {
 
   const appUrl = document.getElementById('app_url');
   if (appUrl.value.includes('://localhost')) {
-    appUrl.value = window.location.href;
+    appUrl.value = `${window.location.origin}${window.location.pathname}`;
   }
 
   const domain = document.getElementById('domain');
