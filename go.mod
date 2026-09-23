@@ -7,7 +7,6 @@ require (
 	code.forgejo.org/forgejo/actions-proto v0.8.0
 	code.forgejo.org/forgejo/go-rpmutils v1.0.0
 	code.forgejo.org/forgejo/levelqueue v1.1.0
-	code.forgejo.org/forgejo/reply v1.0.2
 	code.forgejo.org/forgejo/runner/v13 v13.2.0
 	code.forgejo.org/go-chi/binding v1.0.1
 	code.forgejo.org/go-chi/cache v1.0.1
@@ -19,14 +18,12 @@ require (
 	connectrpc.com/connect v1.21.0
 	github.com/42wim/httpsig v1.2.4
 	github.com/42wim/sshsig v0.0.0-20250502153856-5100632e8920
-	github.com/Azure/go-ntlmssp v0.1.1
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/PuerkitoBio/goquery v1.13.0
-	github.com/Quad4-Software/Reticulum-Go v1.2.1-0.20260915130231-b657814888eb
-	github.com/Quad4-Software/reticulum-go-protocols v0.0.0-20260915130420-15f82b46e5c7
+	github.com/Quad4-Software/Reticulum-Go v1.3.0
+	github.com/Quad4-Software/reticulum-go-protocols v0.0.0-20260918222301-9a8c6af8a99d
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.9.0
 	github.com/alecthomas/chroma/v2 v2.27.0
-	github.com/altcha-org/altcha-lib-go v1.0.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.6.1
 	github.com/buildkite/terminal-to-html/v3 v3.17.1
@@ -37,7 +34,6 @@ require (
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.1.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.5
-	github.com/emersion/go-imap v1.2.1
 	github.com/felixge/fgprof v0.9.5
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/gdgvda/cron v0.7.0
@@ -68,7 +64,6 @@ require (
 	github.com/huandu/xstrings v1.6.0
 	github.com/inbucket/html2text v1.0.0
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/jhillyerd/enmime/v2 v2.4.1
 	github.com/json-iterator/go v1.1.12
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.20.0
@@ -92,6 +87,7 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/sourcegraph/zoekt v0.0.0-20260114143800-c747a3bccc2a
 	github.com/stretchr/testify v1.12.1
+	github.com/surrealdb/surrealdb.go v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/ulikunitz/xz v0.5.16
 	github.com/urfave/cli/v3 v3.9.1
@@ -111,7 +107,6 @@ require (
 	golang.org/x/time v0.15.0
 	golang.org/x/tools v0.50.0
 	google.golang.org/protobuf v1.36.12
-	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.67.3
 	mvdan.cc/xurls/v2 v2.6.0
 	xorm.io/builder v0.3.13
@@ -121,8 +116,9 @@ require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
+	github.com/Azure/go-ntlmssp v0.1.1 // indirect
 	github.com/Quad4-Software/bzip2 v1.0.1 // indirect
-	github.com/Quad4-Software/msgpack/v5 v5.9.1 // indirect
+	github.com/Quad4-Software/msgpack/v5 v5.9.2 // indirect
 	github.com/Quad4-Software/tagparser/v2 v2.2.1 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
 	github.com/RoaringBitmap/roaring/v2 v2.14.5 // indirect
@@ -159,7 +155,6 @@ require (
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c // indirect
 	github.com/caddyserver/zerossl v0.1.5 // indirect
-	github.com/cention-sany/utf7 v0.0.0-20170124080048-26cad61bd60a // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
@@ -170,7 +165,6 @@ require (
 	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
 	github.com/dunglas/httpsfv v1.1.1 // indirect
 	github.com/ebitengine/purego v0.11.0 // indirect
-	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.3 // indirect
 	github.com/go-ap/errors v0.0.0-20260208110149-e1b309365966 // indirect
@@ -191,6 +185,7 @@ require (
 	github.com/go-webauthn/x v0.3.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
+	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
@@ -198,6 +193,7 @@ require (
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grafana/regexp v0.0.0-20240607082908-2cb410fa05da // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -211,6 +207,7 @@ require (
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/landlock-lsm/go-landlock v0.10.1 // indirect
 	github.com/libdns/libdns v1.1.1 // indirect
+	github.com/lxzan/gws v1.10.2 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/markbates/going v1.0.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -270,7 +267,6 @@ require (
 	golang.org/x/term v0.46.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/grpc v1.83.2 // indirect
-	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	kernel.org/pub/linux/libs/security/libcap/psx v1.2.78 // indirect
 )
 
