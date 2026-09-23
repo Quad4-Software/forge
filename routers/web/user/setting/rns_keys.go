@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"forgejo.org/modules/web"
 	"forgejo.org/services/context"
 	"forgejo.org/services/forms"
+	"forgejo.org/services/lxmfnotify"
 )
 
 const (
@@ -178,15 +180,21 @@ func findOwnRNSKey(ctx *context.Context, keyID int64) *user_model.RNSKey {
 	return nil
 }
 
-// sendRNSKeyVerificationCode generates a verification code and delivers it to
-// the lxmf.delivery destination of the registered identity.
+// sendRNSKeyVerificationCode generates a verification code and queues it for
+// delivery to the lxmf.delivery destination of the registered identity. The
+// delivery runs in the background because path resolution can take up to a
+// minute and must not block the request.
 func sendRNSKeyVerificationCode(ctx *context.Context, key *user_model.RNSKey) error {
 	code, err := ctx.Doer.GenerateEmailAuthorizationCode(ctx, auth_model.RNSKeyVerification(key.ID))
 	if err != nil {
 		return err
 	}
+	if !lxmfnotify.Available() {
+		return errors.New("LXMF delivery is not available")
+	}
 	content := ctx.Locale.TrString("settings.rns_verification_message", code, setting.AppName, key.Name)
-	return rns.SendLXMFText(key.IdentityHash, ctx.Locale.TrString("settings.rns_verification_subject", setting.AppName), content)
+	lxmfnotify.SendToIdentity(key.IdentityHash, ctx.Locale.TrString("settings.rns_verification_subject", setting.AppName), content)
+	return nil
 }
 
 // ResendRNSKeyVerification regenerates and resends the verification code for

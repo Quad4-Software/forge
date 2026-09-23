@@ -36,6 +36,9 @@ class Dimmer {
   get(_index: number): HTMLElement {
     return document.body;
   }
+  get 0(): HTMLElement {
+    return document.body;
+  }
   removeClass() {}
   hasClass() {}
   addClass() {}
