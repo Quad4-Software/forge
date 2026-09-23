@@ -140,3 +140,6 @@ tests/integration/api_activitypub_person_inbox_useractivity_test.go
 mise.toml
 .env
 .env.coolify.local
+
+# Lighthouse CI transient output
+/.lighthouseci/

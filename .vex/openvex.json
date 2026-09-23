@@ -1,0 +1,9 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/Quad4-Software/forge/vex/main",
+  "author": "Quad4 Software Security",
+  "version": 1,
+  "timestamp": "2026-09-23T00:00:00Z",
+  "tooling": "OpenVEX",
+  "statements": []
+}

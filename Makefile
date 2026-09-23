@@ -253,6 +253,7 @@ help:
 	@echo " - coverage-show-html               display coverage-run results in an HTML page"
 	@echo " - coverage-show-percent            display coverage-run per package coverage percentage"
 	@echo " - test-e2e-sqlite[\#name.test.e2e] test end to end using playwright and sqlite"
+	@echo " - test-qa                          page-matrix a11y scan plus Lighthouse CI audits"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -794,6 +795,11 @@ test-e2e-pgsql\#%: playwright e2e.pgsql.test generate-ini-pgsql
 .PHONY: test-e2e-debugserver
 test-e2e-debugserver: e2e.sqlite.test generate-ini-sqlite
 	PROJECT_ROOT="$(CURDIR)" PROJECT_CONF=tests/sqlite.ini ./e2e.sqlite.test -test.run TestDebugserver -test.timeout 24h
+
+.PHONY: test-qa
+test-qa: playwright e2e.sqlite.test generate-ini-sqlite
+	PROJECT_ROOT="$(CURDIR)" PROJECT_CONF=tests/sqlite.ini $(GOTESTCOMPILEDRUNPREFIX) ./e2e.sqlite.test $(GOTESTCOMPILEDRUNSUFFIX) -test.run 'TestE2e/pages-a11y.test.e2e'
+	RUN_LIGHTHOUSE=1 PROJECT_ROOT="$(CURDIR)" PROJECT_CONF=tests/sqlite.ini $(GOTESTCOMPILEDRUNPREFIX) ./e2e.sqlite.test $(GOTESTCOMPILEDRUNSUFFIX) -test.run 'TestLighthouse'
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite

@@ -22,7 +22,7 @@ export default defineConfig(
   ...tseslint.configs.recommended,
   eslintPluginImportX.flatConfigs.typescript,
   {
-    ignores: ['web_src/js/vendor', 'web_src/fomantic', 'public/assets/js', 'tests/e2e/reports/'],
+    ignores: ['web_src/js/vendor', 'web_src/fomantic', 'public/assets/js', 'tests/e2e/reports/', 'lighthouserc.cjs'],
   },
   {
     plugins: {
@@ -1147,6 +1147,12 @@ export default defineConfig(
         },
       ],
       'playwright/no-useless-await': [2],
+      'playwright/expect-expect': [
+        2,
+        {
+          assertFunctionNames: ['scanPage', 'accessibilityCheck', 'checkPage', 'assertSelectedLines'],
+        },
+      ],
 
       'playwright/prefer-comparison-matcher': [2],
       'playwright/prefer-equality-matcher': [2],

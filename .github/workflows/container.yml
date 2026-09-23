@@ -46,6 +46,7 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+      security-events: write
     strategy:
       fail-fast: false
       matrix:
@@ -128,3 +129,23 @@ jobs:
             VCS_URL=https://github.com/${{ github.repository }}
           provenance: true
           sbom: true
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.suffix }}@${{ steps.build.outputs.digest }}
+          format: sarif
+          output: trivy-${{ matrix.suffix }}.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: trivy-${{ matrix.suffix }}.sarif
+
+      - name: Scan image with Grype
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.suffix }}@${{ steps.build.outputs.digest }}
+          fail-build: false
+          output-format: table
