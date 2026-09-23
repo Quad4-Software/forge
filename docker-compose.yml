@@ -2,7 +2,7 @@
 # https://github.com/Quad4-Software/ravenguard
 #
 # Topology: Client -> RavenGuard (:8080) -> forge (:3000)
-# ALTCHA is embedded in Forge. RavenGuard runs in proxy mode (not hub).
+# Bot/abuse protection is RavenGuard's job (no app-level captcha).
 # Cache/session/queue: Valkey (Redis-protocol compatible).
 #
 #   cp .env.example .env
@@ -34,20 +34,18 @@ x-forge-env: &forge-env
   FORGEJO__database__NAME: ${FORGE_DB_NAME:-forgejo}
   FORGEJO__database__USER: ${FORGE_DB_USER:-forgejo}
   FORGEJO__database__PASSWD: ${FORGE_DB_PASSWORD:?}
+  FORGEJO__database__SSL_MODE: verify-full
   FORGEJO__cache__ADAPTER: redis
-  FORGEJO__cache__HOST: redis://valkey:6379/0
+  FORGEJO__cache__HOST: rediss://default:${VALKEY_PASSWORD:?}@valkey:6379/0
   FORGEJO__session__PROVIDER: redis
-  FORGEJO__session__PROVIDER_CONFIG: redis://valkey:6379/1
+  FORGEJO__session__PROVIDER_CONFIG: rediss://default:${VALKEY_PASSWORD:?}@valkey:6379/1
   FORGEJO__queue__TYPE: redis
-  FORGEJO__queue__CONN_STR: redis://valkey:6379/2
+  FORGEJO__queue__CONN_STR: rediss://default:${VALKEY_PASSWORD:?}@valkey:6379/2
+  # Internal CA for db/valkey TLS verification alongside the public CAs.
+  SSL_CERT_DIR: /etc/ssl/certs:/pki
   FORGEJO__metrics__ENABLED: ${METRICS_ENABLED:-true}
-  FORGEJO__service__ENABLE_CAPTCHA: "true"
-  FORGEJO__service__CAPTCHA_TYPE: altcha
-  FORGEJO__service__REQUIRE_CAPTCHA_FOR_LOGIN: ${REQUIRE_CAPTCHA_FOR_LOGIN:-false}
-  FORGEJO__service__ALTCHA_MODE: embedded
-  FORGEJO__service__ALTCHA_HMAC_KEY: ${ALTCHA_HMAC_KEY:?}
-  FORGEJO__service__ALTCHA_VERIFY_MODE: solution
-  FORGEJO__service__ALTCHA_MAX_NUMBER: ${ALTCHA_MAX_NUMBER:-100000}
+  # No app-level captcha: RavenGuard edge is the bot/abuse layer.
+  FORGEJO__service__ENABLE_CAPTCHA: "false"
   FORGEJO__sentry__ENABLED: ${SENTRY_ENABLED:-false}
   FORGEJO__sentry__DSN: ${SENTRY_DSN:-}
   FORGEJO__sentry__FRONTEND_DSN: ${SENTRY_FRONTEND_DSN:-}
@@ -57,8 +55,58 @@ x-forge-env: &forge-env
   FORGEJO__rns__EMAIL_OPTIONAL: ${RNS_EMAIL_OPTIONAL:-true}
 
 services:
+  # One-shot internal PKI: issues a CA plus server certs for db and valkey.
+  # The CA private key stays in the container's tmpfs and is never persisted.
+  # The valkey image ships the openssl CLI, so no extra image is needed.
+  pki-init:
+    image: docker.io/valkey/valkey:8-alpine@sha256:cfb2aa4c8352930130fd45eb231a57310ac326d7323edae12b384b9270c46dda
+    restart: "no"
+    user: "0:0"
+    <<: *security
+    read_only: true
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+    volumes:
+      - forge-pki:/pki
+      - forge-ca:/ca
+    tmpfs:
+      - /tmp:size=8m,mode=1777
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        if [ -s /pki/ca.crt ] && [ -s /pki/db.key ] && [ -s /pki/valkey.key ]; then
+          echo "pki already provisioned"
+          exit 0
+        fi
+        openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+          -subj "/CN=quad4-internal-ca" \
+          -keyout /tmp/ca.key -out /tmp/ca.crt
+        for svc in db valkey; do
+          openssl req -newkey rsa:2048 -nodes -subj "/CN=$$svc" \
+            -keyout /tmp/$$svc.key -out /tmp/$$svc.csr
+          printf 'subjectAltName=DNS:%s\n' "$$svc" > /tmp/$$svc.ext
+          openssl x509 -req -in /tmp/$$svc.csr -CA /tmp/ca.crt -CAkey /tmp/ca.key \
+            -CAcreateserial -days 3650 -sha256 -extfile /tmp/$$svc.ext -out /tmp/$$svc.crt
+        done
+        chmod 0644 /tmp/ca.crt /tmp/db.crt /tmp/valkey.crt
+        chmod 0600 /tmp/db.key /tmp/valkey.key
+        chown 70:70 /tmp/db.key
+        chown 999:1000 /tmp/valkey.key
+        mv /tmp/db.crt /tmp/db.key /tmp/valkey.crt /tmp/valkey.key /tmp/ca.crt /pki/
+        cp /pki/ca.crt /ca/ca.crt
+        printf 'local   all   all                            trust\nhostssl all   all   0.0.0.0/0      scram-sha-256\nhostssl all   all   ::/0           scram-sha-256\n' > /pki/pg_hba.conf
+        chmod 0644 /pki/pg_hba.conf
+        rm -f /tmp/ca.key /tmp/*.csr /tmp/*.ext
+        echo "pki provisioned"
+
   db:
-    image: docker.io/library/postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    # PG 18 image keeps data under /var/lib/postgresql/18/docker, so the
+    # volume mounts the parent dir.
+    image: docker.io/library/postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
     restart: unless-stopped
     <<: *security
     read_only: false
@@ -69,12 +117,30 @@ services:
       - SETUID
       - SETGID
       - DAC_OVERRIDE
+    depends_on:
+      pki-init:
+        condition: service_completed_successfully
     environment:
       POSTGRES_DB: ${FORGE_DB_NAME:-forgejo}
       POSTGRES_USER: ${FORGE_DB_USER:-forgejo}
       POSTGRES_PASSWORD: ${FORGE_DB_PASSWORD:?}
+    # TLS required for all network connections (custom pg_hba.conf is
+    # hostssl-only, scram-sha-256); local socket stays trust for init
+    # and healthchecks.
+    command:
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/pki/db.crt
+      - -c
+      - ssl_key_file=/pki/db.key
+      - -c
+      - ssl_ca_file=/pki/ca.crt
+      - -c
+      - hba_file=/pki/pg_hba.conf
     volumes:
-      - forge-db:/var/lib/postgresql/data
+      - forge-db:/var/lib/postgresql
+      - forge-pki:/pki:ro
     tmpfs:
       - /tmp:size=64m,mode=1777
       - /run/postgresql:size=16m,mode=0775,uid=70,gid=70
@@ -98,8 +164,28 @@ services:
     restart: unless-stopped
     user: "999:1000"
     <<: *security
+    depends_on:
+      pki-init:
+        condition: service_completed_successfully
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:?}
+    # TLS only (no plaintext port), password auth on the default user.
     command:
       - valkey-server
+      - --port
+      - "0"
+      - --tls-port
+      - "6379"
+      - --tls-cert-file
+      - /pki/valkey.crt
+      - --tls-key-file
+      - /pki/valkey.key
+      - --tls-ca-cert-file
+      - /pki/ca.crt
+      - --tls-auth-clients
+      - "no"
+      - --requirepass
+      - ${VALKEY_PASSWORD:?}
       - --save
       - "60"
       - "1"
@@ -111,10 +197,11 @@ services:
       - "0.0.0.0"
     volumes:
       - forge-valkey:/data
+      - forge-pki:/pki:ro
     tmpfs:
       - /tmp:size=16m,mode=1777
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
+      test: ["CMD-SHELL", "valkey-cli --tls --cacert /pki/ca.crt --no-auth-warning -a \"$$VALKEY_PASSWORD\" ping"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -148,6 +235,7 @@ services:
       <<: *forge-env
     volumes:
       - forge-data:/var/lib/gitea
+      - forge-ca:/pki:ro
     tmpfs:
       - /tmp:size=256m,mode=1777,uid=1000,gid=1000
       - /var/tmp:size=64m,mode=1777,uid=1000,gid=1000
@@ -212,3 +300,5 @@ volumes:
   forge-data:
   forge-db:
   forge-valkey:
+  forge-pki:
+  forge-ca:
