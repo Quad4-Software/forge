@@ -967,10 +967,8 @@ func newInternalIssuerAITester(t *testing.T, tweaks ...tweak) *AuthorizedIntegra
 
 func (ait *AuthorizedIntegrationTester) signedJWT() string {
 	claims := flexibleClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:   ait.dbAI.Issuer,
-			Audience: jwt.ClaimStrings{ait.dbAI.Audience},
-		},
+		Issuer:   ait.dbAI.Issuer,
+		Audience: jwt.ClaimStrings{ait.dbAI.Audience},
 		other: map[string]any{
 			"custom-claim": "custom-claim-value",
 		},

@@ -199,10 +199,8 @@ func List(ctx *context.Context) {
 	}
 
 	opts := actions_model.FindRunOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-		},
+		Page:          page,
+		PageSize:      convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		RepoID:        ctx.Repo.Repository.ID,
 		WorkflowID:    curWorkflow,
 		TriggerUserID: actorID,

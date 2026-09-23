@@ -226,7 +226,7 @@ func PopulateIssueIndexer(ctx context.Context) error {
 		default:
 		}
 		repos, _, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
+			Page: page, PageSize: repo_model.RepositoryListDefaultPageSize,
 			OrderBy:     db.SearchOrderByID,
 			Private:     true,
 			Collaborate: optional.Some(false),

@@ -24,7 +24,6 @@ import (
 	"github.com/Quad4-Software/Reticulum-Go/pkg/identity"
 	"github.com/Quad4-Software/Reticulum-Go/pkg/node"
 	"github.com/Quad4-Software/Reticulum-Go/pkg/reticulumconfig"
-	"github.com/Quad4-Software/Reticulum-Go/pkg/transport"
 )
 
 var (
@@ -41,19 +40,6 @@ var (
 // Enabled reports whether the embedded Reticulum node started successfully.
 func Enabled() bool {
 	return globalNode != nil
-}
-
-// Transport returns the transport of the embedded node, or nil when disabled.
-func Transport() *transport.Transport {
-	if globalNode == nil {
-		return nil
-	}
-	return globalNode.Transport()
-}
-
-// Identity returns the node identity, or nil when disabled.
-func Identity() *identity.Identity {
-	return globalIdentity
 }
 
 // IdentityHash returns the hex encoded node identity hash.
@@ -106,16 +92,15 @@ func SendLXMFText(identityHash, title, content string) error {
 // without it.
 func Init(ctx context.Context) error {
 	initOnce.Do(func() {
-		initErr = initNode(ctx)
+		initNode(ctx)
 	})
 	return initErr
 }
 
-func initNode(ctx context.Context) error {
+func initNode(ctx context.Context) {
 	if err := startNode(ctx); err != nil {
 		log.Error("Reticulum node failed to start, continuing without rns: %v", err)
 	}
-	return nil
 }
 
 func startNode(ctx context.Context) error {

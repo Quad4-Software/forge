@@ -169,11 +169,9 @@ func newAccessTokenResponse(ctx go_context.Context, grant *auth.OAuth2Grant, ser
 	// generate access token to access the API
 	expirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
 	accessToken := &oauth2.Token{
-		GrantID: grant.ID,
-		Type:    oauth2.TypeAccessToken,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
-		},
+		GrantID:   grant.ID,
+		Type:      oauth2.TypeAccessToken,
+		ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
 	}
 	signedAccessToken, err := accessToken.SignToken(serverKey)
 	if err != nil {
@@ -186,12 +184,10 @@ func newAccessTokenResponse(ctx go_context.Context, grant *auth.OAuth2Grant, ser
 	// generate refresh token to request an access token after it expired later
 	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime()
 	refreshToken := &oauth2.Token{
-		GrantID: grant.ID,
-		Counter: grant.Counter,
-		Type:    oauth2.TypeRefreshToken,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
-		},
+		GrantID:   grant.ID,
+		Counter:   grant.Counter,
+		Type:      oauth2.TypeRefreshToken,
+		ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
 	}
 	signedRefreshToken, err := refreshToken.SignToken(serverKey)
 	if err != nil {
@@ -227,13 +223,11 @@ func newAccessTokenResponse(ctx go_context.Context, grant *auth.OAuth2Grant, ser
 		}
 
 		idToken := &oauth2.OIDCToken{
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
-				Issuer:    strings.TrimSuffix(setting.AppURL, "/"),
-				Audience:  []string{app.ClientID},
-				Subject:   fmt.Sprint(grant.UserID),
-			},
-			Nonce: grant.Nonce,
+			ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
+			Issuer:    strings.TrimSuffix(setting.AppURL, "/"),
+			Audience:  []string{app.ClientID},
+			Subject:   fmt.Sprint(grant.UserID),
+			Nonce:     grant.Nonce,
 		}
 		if grant.ScopeContains("profile") {
 			idToken.Name = user.DisplayName()

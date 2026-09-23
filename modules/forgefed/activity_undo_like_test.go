@@ -114,12 +114,10 @@ func Test_UndoLikeUnmarshalJSON(t *testing.T) {
 				`"actor":"https://repo.prod.meissa.de/api/v1/activitypub/user-id/1",` +
 				`"object":"https://codeberg.org/api/v1/activitypub/repository-id/1"}}`),
 			want: &forgefed.ForgeUndoLike{
-				Activity: ap.Activity{
-					StartTime: startTime,
-					Actor:     ap.IRI("https://repo.prod.meissa.de/api/v1/activitypub/user-id/1"),
-					Type:      ap.UndoType,
-					Object:    like,
-				},
+				StartTime: startTime,
+				Actor:     ap.IRI("https://repo.prod.meissa.de/api/v1/activitypub/user-id/1"),
+				Type:      ap.UndoType,
+				Object:    like,
 			},
 			wantErr: nil,
 		},

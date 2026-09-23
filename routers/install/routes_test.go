@@ -10,6 +10,7 @@ import (
 	"forgejo.org/models/unittest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRoutes(t *testing.T) {
@@ -17,7 +18,7 @@ func TestRoutes(t *testing.T) {
 	assert.NotNil(t, r)
 
 	token, _, err := EnsureSetupToken()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer ClearSetupToken()
 
 	// no setup key: gated with 403

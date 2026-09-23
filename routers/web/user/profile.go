@@ -198,10 +198,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 				items, count, err = activities_model.GetFollowingFeeds(ctx,
 					ctx.Doer.ID,
 					activities_model.GetFollowingFeedsOptions{
-						ListOptions: db.ListOptions{
-							PageSize: pagingNum,
-							Page:     page,
-						},
+						PageSize: pagingNum,
+						Page:     page,
 					})
 				if err != nil {
 					ctx.ServerError("GetFollowingFeeds", err)
@@ -231,10 +229,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			Date:            date,
-			ListOptions: db.ListOptions{
-				PageSize: pagingNum,
-				Page:     page,
-			},
+			PageSize:        pagingNum,
+			Page:            page,
 		})
 		if err != nil {
 			ctx.ServerError("GetFeeds", err)
@@ -247,10 +243,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: pagingNum,
-				Page:     page,
-			},
+			PageSize:           pagingNum,
+			Page:               page,
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
@@ -274,10 +268,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		total = int(count)
 	case "watching":
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: pagingNum,
-				Page:     page,
-			},
+			PageSize:           pagingNum,
+			Page:               page,
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
@@ -336,10 +328,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		}
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: pagingNum,
-				Page:     page,
-			},
+			PageSize:           pagingNum,
+			Page:               page,
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OwnerID:            ctx.ContextUser.ID,

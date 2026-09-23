@@ -97,10 +97,8 @@ func Home(ctx *context.Context) {
 		err   error
 	)
 	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
-			Page:     page,
-		},
+		PageSize:           setting.UI.User.RepoPagingNum,
+		Page:               page,
 		Keyword:            keyword,
 		OwnerID:            org.ID,
 		Collaborate:        optional.Some(false), // A organisation doesn't collaborate to any repository, avoid doing expensive SQL query.
@@ -124,7 +122,7 @@ func Home(ctx *context.Context) {
 		Doer:         ctx.Doer,
 		OrgID:        org.ID,
 		IsDoerMember: ctx.Org.IsMember,
-		ListOptions:  db.ListOptions{Page: 1, PageSize: 25},
+		Page:         1, PageSize: 25,
 	}
 
 	members, _, err := organization.FindOrgMembers(ctx, opts)

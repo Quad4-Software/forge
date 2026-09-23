@@ -25,7 +25,7 @@ func TestAddTopic(t *testing.T) {
 	assert.Len(t, topics, totalNrOfTopics)
 
 	topics, total, err := repo_model.FindTopics(db.DefaultContext, &repo_model.FindTopicOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 2},
+		Page: 1, PageSize: 2,
 	})
 	require.NoError(t, err)
 	assert.Len(t, topics, 2)

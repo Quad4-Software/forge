@@ -38,10 +38,8 @@ func Test_SaveAndGetManifestAndBlob(t *testing.T) {
 	defer blobBuf.Close()
 
 	blobPCI := &packages_service.PackageCreationInfo{
-		PackageInfo: packages_service.PackageInfo{
-			Owner: user2,
-			Name:  image,
-		},
+		Owner:   user2,
+		Name:    image,
 		Creator: user2,
 	}
 
@@ -57,11 +55,9 @@ func Test_SaveAndGetManifestAndBlob(t *testing.T) {
 	defer cfgBuf.Close()
 
 	confPci := &packages_service.PackageCreationInfo{
-		PackageInfo: packages_service.PackageInfo{
-			Owner:   user2,
-			Name:    image,
-			Version: configDigest,
-		},
+		Owner:   user2,
+		Name:    image,
+		Version: configDigest,
 		Creator: user2,
 	}
 

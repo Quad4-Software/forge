@@ -436,18 +436,16 @@ func testCRUD(t *testing.T, u *url.URL, signingFormat string, objectFormat git.O
 
 func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
 	return doAPICreateFile(ctx, path, &api.CreateFileOptions{
-		FileOptions: api.FileOptions{
-			BranchName:    from,
-			NewBranchName: to,
-			Message:       fmt.Sprintf("from:%s to:%s path:%s", from, to, path),
-			Author: api.Identity{
-				Name:  user.FullName,
-				Email: user.Email,
-			},
-			Committer: api.Identity{
-				Name:  user.FullName,
-				Email: user.Email,
-			},
+		BranchName:    from,
+		NewBranchName: to,
+		Message:       fmt.Sprintf("from:%s to:%s path:%s", from, to, path),
+		Author: api.Identity{
+			Name:  user.FullName,
+			Email: user.Email,
+		},
+		Committer: api.Identity{
+			Name:  user.FullName,
+			Email: user.Email,
 		},
 		ContentBase64: base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "This is new text for %s", path)),
 	}, callback...)

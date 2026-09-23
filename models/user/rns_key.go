@@ -145,24 +145,6 @@ func GetRNSKeysByUserID(ctx context.Context, userID int64) ([]*RNSKey, error) {
 	return keys, db.GetEngine(ctx).Where("owner_id = ?", userID).Find(&keys)
 }
 
-// GetVerifiedRNSIdentityHashesByUserIDs maps user IDs to their verified
-// Reticulum identity hashes in a single query.
-func GetVerifiedRNSIdentityHashesByUserIDs(ctx context.Context, userIDs []int64) (map[int64][]string, error) {
-	out := make(map[int64][]string, len(userIDs))
-	if len(userIDs) == 0 {
-		return out, nil
-	}
-	keys := make([]*RNSKey, 0)
-	err := db.GetEngine(ctx).In("owner_id", userIDs).Where("verified = ?", true).Find(&keys)
-	if err != nil {
-		return nil, err
-	}
-	for _, k := range keys {
-		out[k.OwnerID] = append(out[k.OwnerID], k.IdentityHash)
-	}
-	return out, nil
-}
-
 // GetUserByRNSIdentityHash resolves a verified Reticulum identity hash to its
 // owning user. Unverified keys never authenticate.
 func GetUserByRNSIdentityHash(ctx context.Context, identityHash string) (*User, error) {

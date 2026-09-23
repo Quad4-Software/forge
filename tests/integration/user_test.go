@@ -1296,46 +1296,6 @@ func TestUserPasswordResetOAuth2(t *testing.T) {
 	})
 }
 
-func TestActivateEmailAddress(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Service.RegisterEmailConfirm, true)()
-
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	cleanup, code, called := parseMailHelper(t, "newemail@example.org", string(translation.NewLocale("en-US").Tr("mail.activate_email")))
-	defer cleanup()
-
-	session := loginUser(t, user2.Name)
-	req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
-		"email": "newemail@example.org",
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-	assert.True(t, *called)
-
-	queryCode, err := url.QueryUnescape(*code)
-	require.NoError(t, err)
-
-	lookupKey, validator, ok := strings.Cut(queryCode, ":")
-	assert.True(t, ok)
-
-	rawValidator, err := hex.DecodeString(validator)
-	require.NoError(t, err)
-
-	authToken, err := auth_model.FindAuthToken(db.DefaultContext, lookupKey, auth_model.EmailActivation("newemail@example.org"))
-	require.NoError(t, err)
-	assert.False(t, authToken.IsExpired())
-	assert.Equal(t, authToken.HashedValidator, auth_model.HashValidator(rawValidator))
-
-	req = NewRequestWithValues(t, "POST", "/user/activate_email", map[string]string{
-		"code":  *code,
-		"email": "newemail@example.org",
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
-	unittest.AssertNotExistsBean(t, &auth_model.AuthorizationToken{ID: authToken.ID})
-	unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{UID: user2.ID, IsActivated: true, Email: "newemail@example.org"})
-}
-
 func TestExportUserSSHKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

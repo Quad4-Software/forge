@@ -107,9 +107,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	}
 
 	// =========== Mentions ===========
-	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
-		return fmt.Errorf("mailIssueCommentBatch() mentions: %w", err)
-	}
+	mailIssueCommentBatch(ctx, mentions, visited, true)
 
 	// Avoid mailing explicit unwatched
 	ids, err = issues_model.GetIssueWatchersIDs(ctx, ctx.Issue.ID, false)
@@ -122,14 +120,12 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	if err != nil {
 		return err
 	}
-	if err = mailIssueCommentBatch(ctx, unfilteredUsers, visited, false); err != nil {
-		return fmt.Errorf("mailIssueCommentBatch(): %w", err)
-	}
+	mailIssueCommentBatch(ctx, unfilteredUsers, visited, false)
 
 	return nil
 }
 
-func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, visited container.Set[int64], fromMention bool) error {
+func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, visited container.Set[int64], fromMention bool) {
 	checkUnit := unit.TypeIssues
 	if ctx.Issue.IsPull {
 		checkUnit = unit.TypePullRequests
@@ -164,8 +160,6 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 	if len(lxmfUsers) > 0 {
 		sendIssueActivityViaLXMF(ctx, lxmfUsers, fromMention)
 	}
-
-	return nil
 }
 
 // MailParticipants sends new issue thread created emails to repository watchers

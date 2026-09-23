@@ -1295,26 +1295,6 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	return nil, ErrUserNotExist{Name: email}
 }
 
-// GetUserByEmailSimple returns the user associated with the email, if it exists.
-//
-// NOTE: You likely should use `GetUserByEmail`, which handles the no-reply
-// address and only uses activated emails to get the user.
-func GetUserByEmailSimple(ctx context.Context, email string) (*User, error) {
-	if len(email) == 0 {
-		return nil, ErrUserNotExist{Name: email}
-	}
-
-	emailAddress := &EmailAddress{}
-	has, err := db.GetEngine(ctx).Where("lower_email = ?", strings.ToLower(email)).Get(emailAddress)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrUserNotExist{Name: email}
-	}
-
-	return GetUserByID(ctx, emailAddress.UID)
-}
-
 // GetUser checks if a user already exists
 func GetUser(ctx context.Context, user *User) (bool, error) {
 	return db.GetEngine(ctx).Get(user)

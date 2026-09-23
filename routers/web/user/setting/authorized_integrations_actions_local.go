@@ -92,11 +92,9 @@ func (actionsLocalUI) populateTemplateContext(ctx *context.Context) {
 			// it would really balloon the search results to an impractical number of repos.
 			OwnerID: ctx.Doer.ID,
 
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: pageSize,
-			},
-			OrderBy: db.SearchOrderByAlphabetically, // match sorting in getSelectedRepos for consistency
+			Page:     page,
+			PageSize: pageSize,
+			OrderBy:  db.SearchOrderByAlphabetically, // match sorting in getSelectedRepos for consistency
 		}
 		cond := repo_model.SearchRepositoryCondition(repoSearch)
 		repos, count, err := repo_model.SearchRepositoryByCondition(ctx, repoSearch, cond, false)

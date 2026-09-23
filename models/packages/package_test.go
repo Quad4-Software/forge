@@ -325,18 +325,16 @@ func TestPackageTotalSize(t *testing.T) {
 	require.NoError(t, err)
 
 	pv, _, err := packages_service.CreatePackageAndAddFile(ctx, &packages_service.PackageCreationInfo{
-		PackageInfo: packages_service.PackageInfo{
-			Owner:       owner,
-			PackageType: packages_model.TypeGeneric,
-			Name:        "Bleihai",
-			Version:     "1337",
-		},
-		Creator: owner,
+		Owner:       owner,
+		PackageType: packages_model.TypeGeneric,
+		Name:        "Bleihai",
+		Version:     "1337",
+		Creator:     owner,
 	}, &packages_service.PackageFileCreationInfo{
-		PackageFileInfo: packages_service.PackageFileInfo{Filename: "uwu"},
-		Data:            data,
-		Creator:         owner,
-		IsLead:          true,
+		Filename: "uwu",
+		Data:     data,
+		Creator:  owner,
+		IsLead:   true,
 	})
 
 	require.NoError(t, err)

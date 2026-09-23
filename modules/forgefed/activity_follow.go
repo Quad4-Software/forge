@@ -18,8 +18,9 @@ type ForgeFollow struct {
 }
 
 func NewForgeFollowFromAp(activity ap.Activity) (ForgeFollow, error) {
-	result := ForgeFollow{}
-	result.Activity = activity
+	result := ForgeFollow{
+		Activity: activity,
+	}
 	if valid, err := validation.IsValid(result); !valid {
 		return ForgeFollow{}, err
 	}
@@ -27,11 +28,12 @@ func NewForgeFollowFromAp(activity ap.Activity) (ForgeFollow, error) {
 }
 
 func NewForgeFollow(actor, object string) (ForgeFollow, error) {
-	result := ForgeFollow{}
-	result.Type = ap.FollowType
-	result.ID = ap.IRI(actor + "/follows/" + uuid.New().String())
-	result.Actor = ap.IRI(actor)
-	result.Object = ap.IRI(object)
+	result := ForgeFollow{
+		Type:   ap.FollowType,
+		ID:     ap.IRI(actor + "/follows/" + uuid.New().String()),
+		Actor:  ap.IRI(actor),
+		Object: ap.IRI(object),
+	}
 	if valid, err := validation.IsValid(result); !valid {
 		return ForgeFollow{}, err
 	}

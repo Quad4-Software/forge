@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	perm_model "forgejo.org/models/perm"
-	access_model "forgejo.org/models/perm/access"
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/test"
@@ -128,7 +127,7 @@ func TestIsUserRepoAdmin(t *testing.T) {
 		t.Cleanup(baseCleanUp)
 		ctx := &APIContext{Base: base, reducer: reducer}
 		// setup ctx with a repo admin, and the test cases will modify to false in various ways
-		ctx.SetRepo(&Repository{Permission: access_model.Permission{AccessMode: perm_model.AccessModeAdmin}})
+		ctx.SetRepo(&Repository{AccessMode: perm_model.AccessModeAdmin})
 		return ctx
 	}
 

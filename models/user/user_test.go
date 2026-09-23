@@ -197,19 +197,19 @@ func TestSearchUsers(t *testing.T) {
 		testSuccess(opts, expectedOrgIDs)
 	}
 
-	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1, PageSize: 2}},
+	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", Page: 1, PageSize: 2},
 		[]int64{3, 6})
 
-	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 2, PageSize: 2}},
+	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", Page: 2, PageSize: 2},
 		[]int64{7, 17})
 
-	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 3, PageSize: 2}},
+	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", Page: 3, PageSize: 2},
 		[]int64{19, 25})
 
-	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 4, PageSize: 2}},
+	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", Page: 4, PageSize: 2},
 		[]int64{26, 41})
 
-	testOrgSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
+	testOrgSuccess(&user_model.SearchUserOptions{Page: 5, PageSize: 2},
 		[]int64{})
 
 	// test users
@@ -218,32 +218,32 @@ func TestSearchUsers(t *testing.T) {
 		testSuccess(opts, expectedUserIDs)
 	}
 
-	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}},
+	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", Page: 1},
 		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40, 43, 44, 1041})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(false)},
+	testUserSuccess(&user_model.SearchUserOptions{Page: 1, IsActive: optional.Some(false)},
 		[]int64{43, 9})
 
-	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
+	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", Page: 1, IsActive: optional.Some(true)},
 		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40, 44, 1041})
 
-	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
+	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", Page: 1, IsActive: optional.Some(true)},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 
 	// order by name asc default
-	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
+	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", Page: 1, IsActive: optional.Some(true)},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsAdmin: optional.Some(true)},
+	testUserSuccess(&user_model.SearchUserOptions{Page: 1, IsAdmin: optional.Some(true)},
 		[]int64{1})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsRestricted: optional.Some(true)},
+	testUserSuccess(&user_model.SearchUserOptions{Page: 1, IsRestricted: optional.Some(true)},
 		[]int64{29})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsProhibitLogin: optional.Some(true)},
+	testUserSuccess(&user_model.SearchUserOptions{Page: 1, IsProhibitLogin: optional.Some(true)},
 		[]int64{43, 1041, 37})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: optional.Some(true)},
+	testUserSuccess(&user_model.SearchUserOptions{Page: 1, IsTwoFactorEnabled: optional.Some(true)},
 		[]int64{24, 32})
 }
 
@@ -1146,28 +1146,5 @@ func TestGetUserByEmail(t *testing.T) {
 		u, err := user_model.GetUserByEmail(t.Context(), "user1@noreply.example.org")
 		require.NoError(t, err)
 		assert.EqualValues(t, 1, u.ID)
-	})
-}
-
-func TestGetUserByEmailSimple(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "noreply.example.org")()
-
-	t.Run("Normal", func(t *testing.T) {
-		u, err := user_model.GetUserByEmailSimple(t.Context(), "user2@example.com")
-		require.NoError(t, err)
-		assert.EqualValues(t, 2, u.ID)
-	})
-
-	t.Run("Not activated", func(t *testing.T) {
-		u, err := user_model.GetUserByEmailSimple(t.Context(), "user11@example.com")
-		require.NoError(t, err)
-		assert.EqualValues(t, 11, u.ID)
-	})
-
-	t.Run("No-reply", func(t *testing.T) {
-		u, err := user_model.GetUserByEmailSimple(t.Context(), "user1@noreply.example.org")
-		require.ErrorIs(t, err, user_model.ErrUserNotExist{Name: "user1@noreply.example.org"})
-		assert.Nil(t, u)
 	})
 }

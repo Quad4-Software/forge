@@ -780,10 +780,8 @@ func addReleaseAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersi
 		ctx,
 		pv,
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     filename,
-				CompositeKey: arch + "__" + group,
-			},
+			Filename:          filename,
+			CompositeKey:      arch + "__" + group,
 			Creator:           user_model.NewGhostUser(),
 			Data:              content,
 			IsLead:            false,
@@ -878,10 +876,8 @@ func addPkglistAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersi
 		ctx,
 		pv,
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     filename,
-				CompositeKey: arch + "__" + group,
-			},
+			Filename:          filename,
+			CompositeKey:      arch + "__" + group,
 			Creator:           user_model.NewGhostUser(),
 			Data:              content,
 			IsLead:            false,

@@ -31,20 +31,16 @@ func preparePackage(t *testing.T, owner *user_model.User, name string) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		db.DefaultContext,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       owner,
-				PackageType: packages_model.TypeDebian,
-				Name:        name,
-			},
-			Creator: owner,
+			Owner:       owner,
+			PackageType: packages_model.TypeDebian,
+			Name:        name,
+			Creator:     owner,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: name,
-			},
-			Data:    data,
-			Creator: owner,
-			IsLead:  true,
+			Filename: name,
+			Data:     data,
+			Creator:  owner,
+			IsLead:   true,
 		},
 	)
 

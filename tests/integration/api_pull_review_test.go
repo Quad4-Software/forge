@@ -620,10 +620,8 @@ func TestAPIPullReviewRequestAccessTokenResources(t *testing.T) {
 		createPullRequest := func(repoFullname string, pullRequest *api.PullRequest) {
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/contents", repoFullname),
 				&api.ChangeFilesOptions{
-					FileOptions: api.FileOptions{
-						NewBranchName: "prtest",
-					},
-					Files: []*api.ChangeFileOperation{},
+					NewBranchName: "prtest",
+					Files:         []*api.ChangeFileOperation{},
 				}).AddTokenAuth(writeToken)
 			MakeRequest(t, req, http.StatusCreated)
 

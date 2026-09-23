@@ -115,11 +115,9 @@ func PackagesNugetNuspecCheck(ctx context.Context, logger log.Logger, autofix bo
 				ctx,
 				pv,
 				&packages_service.PackageFileCreationInfo{
-					PackageFileInfo: packages_service.PackageFileInfo{
-						Filename: fmt.Sprintf("%s.nuspec", pkg.LowerName),
-					},
-					Data:   nuspecBuf,
-					IsLead: false,
+					Filename: fmt.Sprintf("%s.nuspec", pkg.LowerName),
+					Data:     nuspecBuf,
+					IsLead:   false,
 				},
 			)
 			if err != nil {

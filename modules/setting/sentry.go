@@ -56,7 +56,7 @@ func loadSentryFrom(rootCfg ConfigProvider) {
 		Dsn:              Sentry.DSN,
 		Environment:      Sentry.Environment,
 		TracesSampleRate: Sentry.TracesSampleRate,
-		SendDefaultPII:   Sentry.SendDefaultPII,
+		SendDefaultPII:   Sentry.SendDefaultPII, //nolint:staticcheck
 		Debug:            Sentry.Debug,
 		Release:          AppVer,
 	})

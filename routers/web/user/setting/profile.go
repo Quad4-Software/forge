@@ -185,10 +185,8 @@ func Organization(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOrganization"] = true
 
 	opts := organization.FindOrgOptions{
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.Admin.UserPagingNum,
-			Page:     ctx.FormInt("page"),
-		},
+		PageSize:       setting.UI.Admin.UserPagingNum,
+		Page:           ctx.FormInt("page"),
 		UserID:         ctx.Doer.ID,
 		IncludePrivate: ctx.IsSigned,
 	}
@@ -267,12 +265,10 @@ func Repos(ctx *context.Context) {
 		}
 
 		userRepos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
-			Actor:   ctxUser,
-			Private: true,
-			ListOptions: db.ListOptions{
-				Page:     1,
-				PageSize: setting.UI.Admin.UserPagingNum,
-			},
+			Actor:      ctxUser,
+			Private:    true,
+			Page:       1,
+			PageSize:   setting.UI.Admin.UserPagingNum,
 			LowerNames: repoNames,
 		})
 		if err != nil {

@@ -212,13 +212,11 @@ func TestReducer(t *testing.T) {
 			require.NoError(t, err)
 
 			token := oauth2.Token{
-				GrantID: grant.ID,
-				Type:    oauth2.TypeAccessToken,
-				Counter: 100,
-				RegisteredClaims: jwt.RegisteredClaims{
-					IssuedAt:  jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
-					ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-				},
+				GrantID:   grant.ID,
+				Type:      oauth2.TypeAccessToken,
+				Counter:   100,
+				IssuedAt:  jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
 			}
 			signed, err := token.SignToken(oauth2.DefaultSigningKey)
 			require.NoError(t, err)
@@ -250,13 +248,11 @@ func TestReducer(t *testing.T) {
 			require.NoError(t, err)
 
 			token := oauth2.Token{
-				GrantID: grant.ID,
-				Type:    oauth2.TypeAccessToken,
-				Counter: 100,
-				RegisteredClaims: jwt.RegisteredClaims{
-					IssuedAt:  jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
-					ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-				},
+				GrantID:   grant.ID,
+				Type:      oauth2.TypeAccessToken,
+				Counter:   100,
+				IssuedAt:  jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
 			}
 			signed, err := token.SignToken(oauth2.DefaultSigningKey)
 			require.NoError(t, err)

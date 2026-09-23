@@ -311,10 +311,8 @@ func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID
 			ctx,
 			pv,
 			&packages_service.PackageFileCreationInfo{
-				PackageFileInfo: packages_service.PackageFileInfo{
-					Filename:     file.Name,
-					CompositeKey: group,
-				},
+				Filename:          file.Name,
+				CompositeKey:      group,
 				Creator:           user_model.NewGhostUser(),
 				Data:              file.Data,
 				IsLead:            false,
@@ -607,10 +605,8 @@ func addDataAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersion,
 		ctx,
 		pv,
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     filename,
-				CompositeKey: group,
-			},
+			Filename:          filename,
+			CompositeKey:      group,
 			Creator:           user_model.NewGhostUser(),
 			Data:              content,
 			IsLead:            false,

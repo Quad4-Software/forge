@@ -300,23 +300,23 @@ func IsInvitedToOrganization(ctx context.Context, orgID, userID int64) (bool, er
 	return db.GetEngine(ctx).Where("expiry_unix > ? OR expiry_unix = 0", timeutil.TimeStampNow()).Exist(invite)
 }
 
-func (i *TeamInvite) LoadInvitedUser(ctx context.Context) error {
-	if i.InvitedUser == nil {
-		hasInvitedUser, userID := i.InvitedID.Get()
+func (invite *TeamInvite) LoadInvitedUser(ctx context.Context) error {
+	if invite.InvitedUser == nil {
+		hasInvitedUser, userID := invite.InvitedID.Get()
 		if hasInvitedUser {
 			user, err := user_model.GetUserByID(ctx, userID)
 			if err != nil {
 				return err
 			}
-			i.InvitedUser = user
+			invite.InvitedUser = user
 		}
 	}
 	return nil
 }
 
 // IsExpired determines if an invite is no longer valid because it expired
-func (i *TeamInvite) IsExpired() bool {
-	hasExpiry, deadline := i.ExpiryUnix.Get()
+func (invite *TeamInvite) IsExpired() bool {
+	hasExpiry, deadline := invite.ExpiryUnix.Get()
 	now := timeutil.TimeStampNow()
 	return hasExpiry && deadline < now
 }

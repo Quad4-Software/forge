@@ -124,20 +124,16 @@ func PushPackage(ctx *context.Context) {
 	version, _, err := packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeArch,
-				Name:        p.Name,
-				Version:     p.Version,
-			},
-			Creator:  ctx.Doer,
-			Metadata: p.VersionMetadata,
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeArch,
+			Name:        p.Name,
+			Version:     p.Version,
+			Creator:     ctx.Doer,
+			Metadata:    p.VersionMetadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s-%s-%s.pkg.tar.%s", p.Name, p.Version, p.FileMetadata.Arch, p.CompressType),
-				CompositeKey: group,
-			},
+			Filename:          fmt.Sprintf("%s-%s-%s.pkg.tar.%s", p.Name, p.Version, p.FileMetadata.Arch, p.CompressType),
+			CompositeKey:      group,
 			OverwriteExisting: false,
 			IsLead:            true,
 			Creator:           ctx.ContextUser,
@@ -158,10 +154,8 @@ func PushPackage(ctx *context.Context) {
 	}
 	// add sign file
 	_, err = packages_service.AddFileToPackageVersionInternal(ctx, version, &packages_service.PackageFileCreationInfo{
-		PackageFileInfo: packages_service.PackageFileInfo{
-			CompositeKey: group,
-			Filename:     fmt.Sprintf("%s-%s-%s.pkg.tar.%s.sig", p.Name, p.Version, p.FileMetadata.Arch, p.CompressType),
-		},
+		CompositeKey:      group,
+		Filename:          fmt.Sprintf("%s-%s-%s.pkg.tar.%s.sig", p.Name, p.Version, p.FileMetadata.Arch, p.CompressType),
 		OverwriteExisting: true,
 		IsLead:            false,
 		Creator:           ctx.Doer,

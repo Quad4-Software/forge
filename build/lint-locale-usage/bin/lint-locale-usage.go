@@ -358,7 +358,7 @@ func main() {
 		}
 		name := d.Name()
 		if d.IsDir() {
-			if name == "docker" || name == ".git" || name == "node_modules" {
+			if name == "docker" || name == ".git" || name == "node_modules" || name == "data" || name == "custom" {
 				return fs.SkipDir
 			}
 		} else if name == "bindata.go" || fpath == "modules/translation/i18n/i18n_test.go" || fpath == "modules/translation/i18n/i18n_ini_test.go" {

@@ -74,7 +74,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 	opts := repo_model.FindReleasesOptions{
 		IncludeDrafts: true,
 		IncludeTags:   true,
-		ListOptions:   db.ListOptions{PageSize: 50},
+		PageSize:      50,
 		RepoID:        repo.ID,
 	}
 	for page := 1; ; page++ {

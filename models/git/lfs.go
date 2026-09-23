@@ -166,7 +166,7 @@ func GetLFSMetaObjectByOid(ctx context.Context, repoID int64, oid string) (*LFSM
 		return nil, ErrLFSObjectNotExist
 	}
 
-	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repoID}
+	m := &LFSMetaObject{Oid: oid, RepositoryID: repoID}
 	has, err := db.GetEngine(ctx).Get(m)
 	if err != nil {
 		return nil, err
@@ -195,12 +195,12 @@ func RemoveLFSMetaObjectByOidFn(ctx context.Context, repoID int64, oid string, f
 	}
 	defer committer.Close()
 
-	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repoID}
+	m := &LFSMetaObject{Oid: oid, RepositoryID: repoID}
 	if _, err := db.DeleteByBean(ctx, m); err != nil {
 		return -1, err
 	}
 
-	count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+	count, err := db.CountByBean(ctx, &LFSMetaObject{Oid: oid})
 	if err != nil {
 		return count, err
 	}
@@ -237,17 +237,17 @@ func CountLFSMetaObjects(ctx context.Context, repoID int64) (int64, error) {
 // LFSObjectAccessible checks if a provided Oid is accessible to the user
 func LFSObjectAccessible(ctx context.Context, user *user_model.User, oid string) (bool, error) {
 	if user.IsAdmin {
-		count, err := db.GetEngine(ctx).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+		count, err := db.GetEngine(ctx).Count(&LFSMetaObject{Oid: oid})
 		return count > 0, err
 	}
 	cond := repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)
-	count, err := db.GetEngine(ctx).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+	count, err := db.GetEngine(ctx).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Oid: oid})
 	return count > 0, err
 }
 
 // ExistsLFSObject checks if a provided Oid exists within the DB
 func ExistsLFSObject(ctx context.Context, oid string) (bool, error) {
-	return db.GetEngine(ctx).Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+	return db.GetEngine(ctx).Exist(&LFSMetaObject{Oid: oid})
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects

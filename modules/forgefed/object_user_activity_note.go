@@ -31,20 +31,21 @@ func NewForgeUserActivityNoteFromAp(item ap.Item) (ForgeUserActivityNote, error)
 
 // TODO: Unused - might be removed
 func newNote(doer *user_model.User, content, id string, published time.Time) (ForgeUserActivityNote, error) {
-	note := ForgeUserActivityNote{}
-	note.Type = ap.NoteType
-	note.AttributedTo = ap.IRI(doer.APActorID())
-	note.Content = ap.NaturalLanguageValues{
-		ap.NilLangRef: ap.Content(content),
-	}
-	note.ID = ap.IRI(id)
-	note.Published = published
-	note.URL = ap.IRI(id)
-	note.To = ap.ItemCollection{
-		ap.IRI("https://www.w3.org/ns/activitystreams#Public"),
-	}
-	note.CC = ap.ItemCollection{
-		ap.IRI(doer.APActorID() + "/followers"),
+	note := ForgeUserActivityNote{
+		Type:         ap.NoteType,
+		AttributedTo: ap.IRI(doer.APActorID()),
+		Content: ap.NaturalLanguageValues{
+			ap.NilLangRef: ap.Content(content),
+		},
+		ID:        ap.IRI(id),
+		Published: published,
+		URL:       ap.IRI(id),
+		To: ap.ItemCollection{
+			ap.IRI("https://www.w3.org/ns/activitystreams#Public"),
+		},
+		CC: ap.ItemCollection{
+			ap.IRI(doer.APActorID() + "/followers"),
+		},
 	}
 
 	if valid, err := validation.IsValid(note); !valid {

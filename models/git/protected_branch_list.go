@@ -51,10 +51,8 @@ func FindAllMatchedBranches(ctx context.Context, repoID int64, ruleName string) 
 	results := make([]string, 0, 10)
 	for page := 1; ; page++ {
 		branchNames, err := FindBranchNames(ctx, FindBranchOptions{
-			ListOptions: db.ListOptions{
-				PageSize: 100,
-				Page:     page,
-			},
+			PageSize:        100,
+			Page:            page,
 			RepoID:          repoID,
 			IsDeletedBranch: optional.Some(false),
 		})

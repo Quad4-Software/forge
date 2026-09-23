@@ -6,7 +6,6 @@ package user
 import (
 	"net/http"
 
-	"forgejo.org/models/db"
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/optional"
 	"forgejo.org/modules/setting"
@@ -17,11 +16,11 @@ import (
 // SearchCandidates searches candidate users for dropdown list
 func SearchCandidates(ctx *context.Context) {
 	users, _, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
-		Actor:       ctx.Doer,
-		Keyword:     ctx.FormTrim("q"),
-		Type:        user_model.UserTypeIndividual,
-		IsActive:    optional.Some(true),
-		ListOptions: db.ListOptions{PageSize: setting.UI.MembersPagingNum},
+		Actor:    ctx.Doer,
+		Keyword:  ctx.FormTrim("q"),
+		Type:     user_model.UserTypeIndividual,
+		IsActive: optional.Some(true),
+		PageSize: setting.UI.MembersPagingNum,
 	})
 	if err != nil {
 		ctx.ServerError("Unable to search users", err)

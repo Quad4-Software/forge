@@ -112,18 +112,14 @@ func Test_RepositoryUnmarshalJSON(t *testing.T) {
 		"with Type": {
 			data: []byte(`{"type":"Repository"}`),
 			want: &forgefed.Repository{
-				Actor: ap.Actor{
-					Type: forgefed.RepositoryType,
-				},
+				Type: forgefed.RepositoryType,
 			},
 		},
 		"with Type and ID": {
 			data: []byte(`{"id":"https://example.com/1","type":"Repository"}`),
 			want: &forgefed.Repository{
-				Actor: ap.Actor{
-					ID:   "https://example.com/1",
-					Type: forgefed.RepositoryType,
-				},
+				ID:   "https://example.com/1",
+				Type: forgefed.RepositoryType,
 			},
 		},
 	}

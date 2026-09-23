@@ -4,7 +4,6 @@
 package explore
 
 import (
-	"forgejo.org/models/db"
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/container"
 	"forgejo.org/modules/setting"
@@ -48,10 +47,10 @@ func Organizations(ctx *context.Context) {
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
-		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeOrganization,
-		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		Visible:     visibleTypes,
+		Actor:    ctx.Doer,
+		Type:     user_model.UserTypeOrganization,
+		PageSize: setting.UI.ExplorePagingNum,
+		Visible:  visibleTypes,
 
 		SupportedSortOrders: supportedSortOrders,
 	}, tplExploreUsers)

@@ -14,24 +14,26 @@ import (
 )
 
 func Test_ForgeUserActivityValidation(t *testing.T) {
-	note := forgefed.ForgeUserActivityNote{}
-	note.Type = ap.NoteType
-	note.Content = ap.NaturalLanguageValues{
-		ap.NilLangRef: ap.Content("Any Content!"),
-	}
-	note.URL = ap.IRI("example.org/user-id/57")
-
-	sut := forgefed.ForgeUserActivity{}
-	sut.Type = ap.CreateType
-	sut.Actor = ap.IRI("example.org/user-id/23")
-	sut.CC = ap.ItemCollection{
-		ap.IRI("example.org/registration/public#2nd"),
-	}
-	sut.To = ap.ItemCollection{
-		ap.IRI("example.org/registration/public"),
+	note := forgefed.ForgeUserActivityNote{
+		Type: ap.NoteType,
+		Content: ap.NaturalLanguageValues{
+			ap.NilLangRef: ap.Content("Any Content!"),
+		},
+		URL: ap.IRI("example.org/user-id/57"),
 	}
 
-	sut.Note = note
+	sut := forgefed.ForgeUserActivity{
+		Type:  ap.CreateType,
+		Actor: ap.IRI("example.org/user-id/23"),
+		CC: ap.ItemCollection{
+			ap.IRI("example.org/registration/public#2nd"),
+		},
+		To: ap.ItemCollection{
+			ap.IRI("example.org/registration/public"),
+		},
+
+		Note: note,
+	}
 
 	valid, _ := validation.IsValid(sut)
 	assert.True(t, valid, "sut expected to be valid: %v\n", sut.Validate())

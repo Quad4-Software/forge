@@ -504,11 +504,9 @@ func TestSlackToHook(t *testing.T) {
 			PushOnly:       true,
 			SendEverything: false,
 			ChooseEvents:   false,
-			HookEvents: webhook_module.HookEvents{
-				Create:      false,
-				Push:        true,
-				PullRequest: false,
-			},
+			Create:         false,
+			Push:           true,
+			PullRequest:    false,
 		},
 	}
 	h, err := ToHook("repoLink", w)

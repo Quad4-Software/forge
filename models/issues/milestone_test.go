@@ -98,10 +98,8 @@ func TestGetMilestones(t *testing.T) {
 	test := func(sortType string, sortCond func(*issues_model.Milestone) int) {
 		for _, page := range []int{0, 1} {
 			milestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
-				ListOptions: db.ListOptions{
-					Page:     page,
-					PageSize: setting.UI.IssuePagingNum,
-				},
+				Page:     page,
+				PageSize: setting.UI.IssuePagingNum,
 				RepoID:   repo.ID,
 				IsClosed: optional.Some(false),
 				SortType: sortType,
@@ -115,10 +113,8 @@ func TestGetMilestones(t *testing.T) {
 			assert.True(t, sort.IntsAreSorted(values))
 
 			milestones, err = db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
-				ListOptions: db.ListOptions{
-					Page:     page,
-					PageSize: setting.UI.IssuePagingNum,
-				},
+				Page:     page,
+				PageSize: setting.UI.IssuePagingNum,
 				RepoID:   repo.ID,
 				IsClosed: optional.Some(true),
 				Name:     "",
@@ -231,10 +227,8 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 	test := func(sortType string, sortCond func(*issues_model.Milestone) int) {
 		for _, page := range []int{0, 1} {
 			openMilestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
-				ListOptions: db.ListOptions{
-					Page:     page,
-					PageSize: setting.UI.IssuePagingNum,
-				},
+				Page:     page,
+				PageSize: setting.UI.IssuePagingNum,
 				RepoIDs:  []int64{repo1.ID, repo2.ID},
 				IsClosed: optional.Some(false),
 				SortType: sortType,
@@ -249,10 +243,8 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 
 			closedMilestones, err := db.Find[issues_model.Milestone](db.DefaultContext,
 				issues_model.FindMilestoneOptions{
-					ListOptions: db.ListOptions{
-						Page:     page,
-						PageSize: setting.UI.IssuePagingNum,
-					},
+					Page:     page,
+					PageSize: setting.UI.IssuePagingNum,
 					RepoIDs:  []int64{repo1.ID, repo2.ID},
 					IsClosed: optional.Some(true),
 					SortType: sortType,

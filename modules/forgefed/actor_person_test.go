@@ -17,15 +17,16 @@ import (
 )
 
 func TestNewPersonIdFromModel(t *testing.T) {
-	expected := forgefed.PersonID{}
-	expected.ID = "1"
-	expected.Source = "forgejo"
-	expected.HostSchema = "https"
-	expected.Path = "api/v1/activitypub/user-id"
-	expected.Host = "an.other.host"
-	expected.HostPort = 443
-	expected.IsPortSupplemented = false
-	expected.UnvalidatedInput = "https://an.other.host:443/api/v1/activitypub/user-id/1"
+	expected := forgefed.PersonID{
+		ID:                 "1",
+		Source:             "forgejo",
+		HostSchema:         "https",
+		Path:               "api/v1/activitypub/user-id",
+		Host:               "an.other.host",
+		HostPort:           443,
+		IsPortSupplemented: false,
+		UnvalidatedInput:   "https://an.other.host:443/api/v1/activitypub/user-id/1",
+	}
 
 	sut, _ := forgefed.NewPersonIDFromModel("an.other.host", "https", 443, "forgejo", "1")
 	assert.Equal(t, expected, sut)
@@ -35,68 +36,73 @@ func TestNewPersonId(t *testing.T) {
 	var sut, expected forgefed.PersonID
 	var err error
 
-	expected = forgefed.PersonID{}
-	expected.ID = "1"
-	expected.Source = "forgejo"
-	expected.HostSchema = "https"
-	expected.Path = "api/v1/activitypub/user-id"
-	expected.Host = "an.other.host"
-	expected.HostPort = 443
-	expected.IsPortSupplemented = true
-	expected.UnvalidatedInput = "https://an.other.host/api/v1/activitypub/user-id/1"
+	expected = forgefed.PersonID{
+		ID:                 "1",
+		Source:             "forgejo",
+		HostSchema:         "https",
+		Path:               "api/v1/activitypub/user-id",
+		Host:               "an.other.host",
+		HostPort:           443,
+		IsPortSupplemented: true,
+		UnvalidatedInput:   "https://an.other.host/api/v1/activitypub/user-id/1",
+	}
 
 	sut, err = forgefed.NewPersonID("https://an.other.host/api/v1/activitypub/user-id/1", "forgejo")
 	require.NoError(t, err)
 	assert.Equal(t, expected, sut)
 
-	expected = forgefed.PersonID{}
-	expected.ID = "1"
-	expected.Source = "forgejo"
-	expected.HostSchema = "https"
-	expected.Path = "api/v1/activitypub/user-id"
-	expected.Host = "an.other.host"
-	expected.HostPort = 443
-	expected.IsPortSupplemented = false
-	expected.UnvalidatedInput = "https://an.other.host:443/api/v1/activitypub/user-id/1"
+	expected = forgefed.PersonID{
+		ID:                 "1",
+		Source:             "forgejo",
+		HostSchema:         "https",
+		Path:               "api/v1/activitypub/user-id",
+		Host:               "an.other.host",
+		HostPort:           443,
+		IsPortSupplemented: false,
+		UnvalidatedInput:   "https://an.other.host:443/api/v1/activitypub/user-id/1",
+	}
 
 	sut, _ = forgefed.NewPersonID("https://an.other.host:443/api/v1/activitypub/user-id/1", "forgejo")
 	assert.Equal(t, expected, sut)
 
-	expected = forgefed.PersonID{}
-	expected.ID = "1"
-	expected.Source = "forgejo"
-	expected.HostSchema = "http"
-	expected.Path = "api/v1/activitypub/user-id"
-	expected.Host = "an.other.host"
-	expected.HostPort = 80
-	expected.IsPortSupplemented = false
-	expected.UnvalidatedInput = "http://an.other.host:80/api/v1/activitypub/user-id/1"
+	expected = forgefed.PersonID{
+		ID:                 "1",
+		Source:             "forgejo",
+		HostSchema:         "http",
+		Path:               "api/v1/activitypub/user-id",
+		Host:               "an.other.host",
+		HostPort:           80,
+		IsPortSupplemented: false,
+		UnvalidatedInput:   "http://an.other.host:80/api/v1/activitypub/user-id/1",
+	}
 
 	sut, _ = forgefed.NewPersonID("http://an.other.host:80/api/v1/activitypub/user-id/1", "forgejo")
 	assert.Equal(t, expected, sut)
 
-	expected = forgefed.PersonID{}
-	expected.ID = "1"
-	expected.Source = "forgejo"
-	expected.HostSchema = "https"
-	expected.Path = "api/v1/activitypub/user-id"
-	expected.Host = "an.other.host"
-	expected.HostPort = 443
-	expected.IsPortSupplemented = false
-	expected.UnvalidatedInput = "https://an.other.host:443/api/v1/activitypub/user-id/1"
+	expected = forgefed.PersonID{
+		ID:                 "1",
+		Source:             "forgejo",
+		HostSchema:         "https",
+		Path:               "api/v1/activitypub/user-id",
+		Host:               "an.other.host",
+		HostPort:           443,
+		IsPortSupplemented: false,
+		UnvalidatedInput:   "https://an.other.host:443/api/v1/activitypub/user-id/1",
+	}
 
 	sut, _ = forgefed.NewPersonID("HTTPS://an.other.host:443/api/v1/activitypub/user-id/1", "forgejo")
 	assert.Equal(t, expected, sut)
 
-	expected = forgefed.PersonID{}
-	expected.ID = "@me"
-	expected.Source = "gotosocial"
-	expected.HostSchema = "https"
-	expected.Path = ""
-	expected.Host = "an.other.host"
-	expected.HostPort = 443
-	expected.IsPortSupplemented = true
-	expected.UnvalidatedInput = "https://an.other.host/@me"
+	expected = forgefed.PersonID{
+		ID:                 "@me",
+		Source:             "gotosocial",
+		HostSchema:         "https",
+		Path:               "",
+		Host:               "an.other.host",
+		HostPort:           443,
+		IsPortSupplemented: true,
+		UnvalidatedInput:   "https://an.other.host/@me",
+	}
 
 	sut, err = forgefed.NewPersonID("https://an.other.host/@me", "gotosocial")
 	require.NoError(t, err)
@@ -104,99 +110,106 @@ func TestNewPersonId(t *testing.T) {
 }
 
 func TestPersonIdValidation(t *testing.T) {
-	sut := forgefed.PersonID{}
-	sut.ID = "1"
-	sut.Source = "forgejo"
-	sut.HostSchema = "https"
-	sut.Path = ""
-	sut.Host = "an.other.host"
-	sut.HostPort = 443
-	sut.IsPortSupplemented = true
-	sut.UnvalidatedInput = "https://an.other.host/1"
+	sut := forgefed.PersonID{
+		ID:                 "1",
+		Source:             "forgejo",
+		HostSchema:         "https",
+		Path:               "",
+		Host:               "an.other.host",
+		HostPort:           443,
+		IsPortSupplemented: true,
+		UnvalidatedInput:   "https://an.other.host/1",
+	}
 
 	result, err := validation.IsValid(sut)
 	assert.False(t, result)
 	require.EqualError(t, err, "Validation Error: forgefed.PersonID: Value path should not be empty\npath: \"\" has to be a person specific api path")
 
-	sut = forgefed.PersonID{}
-	sut.ID = "1"
-	sut.Source = "mastodon"
-	sut.HostSchema = "https"
-	sut.Path = ""
-	sut.Host = "an.other.host"
-	sut.HostPort = 443
-	sut.IsPortSupplemented = true
-	sut.UnvalidatedInput = "https://an.other.host/1"
+	sut = forgefed.PersonID{
+		ID:                 "1",
+		Source:             "mastodon",
+		HostSchema:         "https",
+		Path:               "",
+		Host:               "an.other.host",
+		HostPort:           443,
+		IsPortSupplemented: true,
+		UnvalidatedInput:   "https://an.other.host/1",
+	}
 
 	result, err = validation.IsValid(sut)
 	assert.True(t, result)
 	require.NoError(t, err)
 
-	sut = forgefed.PersonID{}
-	sut.ID = "1"
-	sut.Source = "forgejo"
-	sut.HostSchema = "https"
-	sut.Path = "path"
-	sut.Host = "an.other.host"
-	sut.HostPort = 443
-	sut.IsPortSupplemented = true
-	sut.UnvalidatedInput = "https://an.other.host/path/1"
+	sut = forgefed.PersonID{
+		ID:                 "1",
+		Source:             "forgejo",
+		HostSchema:         "https",
+		Path:               "path",
+		Host:               "an.other.host",
+		HostPort:           443,
+		IsPortSupplemented: true,
+		UnvalidatedInput:   "https://an.other.host/path/1",
+	}
 
 	result, err = validation.IsValid(sut)
 	assert.False(t, result)
 	require.EqualError(t, err, "Validation Error: forgefed.PersonID: path: \"path\" has to be a person specific api path")
 
-	sut = forgefed.PersonID{}
-	sut.ID = "1"
-	sut.Source = "forgejox"
-	sut.HostSchema = "https"
-	sut.Path = "api/v1/activitypub/user-id"
-	sut.Host = "an.other.host"
-	sut.HostPort = 443
-	sut.IsPortSupplemented = true
-	sut.UnvalidatedInput = "https://an.other.host/api/v1/activitypub/user-id/1"
+	sut = forgefed.PersonID{
+		ID:                 "1",
+		Source:             "forgejox",
+		HostSchema:         "https",
+		Path:               "api/v1/activitypub/user-id",
+		Host:               "an.other.host",
+		HostPort:           443,
+		IsPortSupplemented: true,
+		UnvalidatedInput:   "https://an.other.host/api/v1/activitypub/user-id/1",
+	}
 
 	result, err = validation.IsValid(sut)
 	assert.False(t, result)
 	require.EqualError(t, err, "Validation Error: forgefed.PersonID: Field Source contains the value forgejox, which is not in allowed subset [forgejo gitea mastodon gotosocial]")
 
-	sut = forgefed.PersonID{}
-	sut.ID = "actor"
-	sut.Source = "forgejo"
-	sut.HostSchema = "https"
-	sut.Path = "api/v1/activitypub"
-	sut.Host = "example.com"
-	sut.HostPort = 443
-	sut.IsPortSupplemented = true
-	sut.UnvalidatedInput = "https://example.com/api/v1/activitypub/actor"
+	sut = forgefed.PersonID{
+		ID:                 "actor",
+		Source:             "forgejo",
+		HostSchema:         "https",
+		Path:               "api/v1/activitypub",
+		Host:               "example.com",
+		HostPort:           443,
+		IsPortSupplemented: true,
+		UnvalidatedInput:   "https://example.com/api/v1/activitypub/actor",
+	}
 
 	result, err = validation.IsValid(sut)
 	assert.True(t, result)
 	require.NoError(t, err)
 
-	sut = forgefed.PersonID{}
-	sut.ID = "actor"
-	sut.Source = "forgejo"
-	sut.HostSchema = "https"
-	sut.Path = "api/activitypub"
-	sut.Host = "example.com"
-	sut.HostPort = 443
-	sut.IsPortSupplemented = true
-	sut.UnvalidatedInput = "https://example.com/api/activitypub/actor"
+	sut = forgefed.PersonID{
+		ID:                 "actor",
+		Source:             "forgejo",
+		HostSchema:         "https",
+		Path:               "api/activitypub",
+		Host:               "example.com",
+		HostPort:           443,
+		IsPortSupplemented: true,
+		UnvalidatedInput:   "https://example.com/api/activitypub/actor",
+	}
 
 	result, err = validation.IsValid(sut)
 	assert.True(t, result)
 	require.NoError(t, err)
 
-	sut = forgefed.PersonID{}
-	sut.ID = "1"
-	sut.Source = "forgejo"
-	sut.HostSchema = "https"
-	sut.Path = "api/v1/activitypub"
-	sut.Host = "example.com"
-	sut.HostPort = 443
-	sut.IsPortSupplemented = true
-	sut.UnvalidatedInput = "https://example.com/api/v1/activitypub/1"
+	sut = forgefed.PersonID{
+		ID:                 "1",
+		Source:             "forgejo",
+		HostSchema:         "https",
+		Path:               "api/v1/activitypub",
+		Host:               "example.com",
+		HostPort:           443,
+		IsPortSupplemented: true,
+		UnvalidatedInput:   "https://example.com/api/v1/activitypub/1",
+	}
 
 	result, err = validation.IsValid(sut)
 	assert.False(t, result)
@@ -235,9 +248,10 @@ func TestShouldThrowErrorOnInvalidInput(t *testing.T) {
 }
 
 func Test_PersonMarshalJSON(t *testing.T) {
-	sut := forgefed.ForgePerson{}
-	sut.Type = ap.PersonType
-	sut.PreferredUsername = ap.NaturalLanguageValuesNew()
+	sut := forgefed.ForgePerson{
+		Type:              ap.PersonType,
+		PreferredUsername: ap.NaturalLanguageValuesNew(),
+	}
 	sut.PreferredUsername.Set(ap.English, ap.Content("MaxMuster"))
 	result, _ := sut.MarshalJSON()
 	assert.JSONEq(t, `{"type":"Person","preferredUsername":"MaxMuster"}`, string(result), "Expected string is not equal")
@@ -245,11 +259,9 @@ func Test_PersonMarshalJSON(t *testing.T) {
 
 func Test_PersonUnmarshalJSON(t *testing.T) {
 	expected := &forgefed.ForgePerson{
-		Actor: ap.Actor{
-			Type: ap.PersonType,
-			PreferredUsername: ap.NaturalLanguageValues{
-				ap.English: []byte("MaxMuster"),
-			},
+		Type: ap.PersonType,
+		PreferredUsername: ap.NaturalLanguageValues{
+			ap.English: []byte("MaxMuster"),
 		},
 	}
 	sut := new(forgefed.ForgePerson)

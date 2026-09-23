@@ -268,10 +268,8 @@ func InitiateUploadBlob(ctx *context.Context) {
 		if _, err := container_service.SaveAsPackageBlob(ctx,
 			buf,
 			&packages_service.PackageCreationInfo{
-				PackageInfo: packages_service.PackageInfo{
-					Owner: ctx.Package.Owner,
-					Name:  image,
-				},
+				Owner:   ctx.Package.Owner,
+				Name:    image,
 				Creator: ctx.Doer,
 			},
 		); err != nil {
@@ -408,10 +406,8 @@ func EndUploadBlob(ctx *context.Context) {
 	if _, err := container_service.SaveAsPackageBlob(ctx,
 		uploader,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner: ctx.Package.Owner,
-				Name:  image,
-			},
+			Owner:   ctx.Package.Owner,
+			Name:    image,
 			Creator: ctx.Doer,
 		},
 	); err != nil {
@@ -542,8 +538,7 @@ func UploadManifest(ctx *context.Context) {
 
 	digest, err := container_service.ProcessManifest(ctx, *mci, buf)
 	if err != nil {
-		var namedError *container_service.NamedError
-		if errors.As(err, &namedError) {
+		if namedError, ok := errors.AsType[*container_service.NamedError](err); ok {
 			apiErrorDefined(ctx, namedError)
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, container_service.ErrBlobUnknown)

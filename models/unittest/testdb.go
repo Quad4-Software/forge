@@ -186,7 +186,6 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 
 	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
 
-
 	config.SetDynGetter(system.NewDatabaseDynKeyGetter())
 
 	if err = storage.Init(); err != nil {

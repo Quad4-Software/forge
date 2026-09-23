@@ -5,7 +5,6 @@
 package admin
 
 import (
-	"forgejo.org/models/db"
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/base"
 	"forgejo.org/modules/setting"
@@ -31,9 +30,7 @@ func Organizations(ctx *context.Context) {
 		Actor:           ctx.Doer,
 		Type:            user_model.UserTypeOrganization,
 		IncludeReserved: true, // administrator needs to list all accounts include reserved
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.Admin.OrgPagingNum,
-		},
-		Visible: []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		PageSize:        setting.UI.Admin.OrgPagingNum,
+		Visible:         []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplOrgs)
 }

@@ -88,16 +88,12 @@ func getExpectedFileResponseForRepofilesDelete() *api.FileResponse {
 		Content: nil,
 		Commit: &api.FileCommitResponse{
 			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "Bob Smith",
-					Email: "bob@smith.com",
-				},
+				Name:  "Bob Smith",
+				Email: "bob@smith.com",
 			},
 			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "Bob Smith",
-					Email: "bob@smith.com",
-				},
+				Name:  "Bob Smith",
+				Email: "bob@smith.com",
 			},
 			Message: "Deletes README.md\n",
 		},
@@ -140,24 +136,18 @@ func getExpectedFileResponseForRepofilesCreate(commitID, lastCommitSHA string, l
 			},
 		},
 		Commit: &api.FileCommitResponse{
-			CommitMeta: api.CommitMeta{
-				URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/" + commitID,
-				SHA: commitID,
-			},
+			URL:     setting.AppURL + "api/v1/repos/user2/repo1/git/commits/" + commitID,
+			SHA:     commitID,
 			HTMLURL: setting.AppURL + "user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "User Two",
-					Email: "user2@noreply.example.org",
-				},
-				Date: time.Now().UTC().Format(time.RFC3339),
+				Name:  "User Two",
+				Email: "user2@noreply.example.org",
+				Date:  time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "User Two",
-					Email: "user2@noreply.example.org",
-				},
-				Date: time.Now().UTC().Format(time.RFC3339),
+				Name:  "User Two",
+				Email: "user2@noreply.example.org",
+				Date:  time.Now().UTC().Format(time.RFC3339),
 			},
 			Parents: []*api.CommitMeta{
 				{
@@ -209,24 +199,18 @@ func getExpectedFileResponseForRepofilesUpdate(commitID, filename, lastCommitSHA
 			},
 		},
 		Commit: &api.FileCommitResponse{
-			CommitMeta: api.CommitMeta{
-				URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/" + commitID,
-				SHA: commitID,
-			},
+			URL:     setting.AppURL + "api/v1/repos/user2/repo1/git/commits/" + commitID,
+			SHA:     commitID,
 			HTMLURL: setting.AppURL + "user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "User Two",
-					Email: "user2@noreply.example.org",
-				},
-				Date: time.Now().UTC().Format(time.RFC3339),
+				Name:  "User Two",
+				Email: "user2@noreply.example.org",
+				Date:  time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "User Two",
-					Email: "user2@noreply.example.org",
-				},
-				Date: time.Now().UTC().Format(time.RFC3339),
+				Name:  "User Two",
+				Email: "user2@noreply.example.org",
+				Date:  time.Now().UTC().Format(time.RFC3339),
 			},
 			Parents: []*api.CommitMeta{
 				{

@@ -195,10 +195,8 @@ func updateForkRepositoryInContext(ctx *context.Context, forkRepo *repo_model.Re
 	}
 
 	branches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		RepoID:          ctx.Repo.Repository.ID,
+		ListAll:         true,
 		IsDeletedBranch: optional.Some(false),
 		// Add it as the first option
 		ExcludeBranchNames: []string{ctx.Repo.Repository.DefaultBranch},

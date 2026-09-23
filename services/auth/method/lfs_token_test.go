@@ -31,13 +31,11 @@ type authTokenOptions struct {
 func getLFSAuthTokenWithBearer(opts authTokenOptions) (string, error) {
 	now := time.Now()
 	claims := lfs.Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
-			NotBefore: jwt.NewNumericDate(now),
-		},
-		RepoID: opts.RepoID,
-		Op:     opts.Op,
-		UserID: opts.UserID,
+		ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+		NotBefore: jwt.NewNumericDate(now),
+		RepoID:    opts.RepoID,
+		Op:        opts.Op,
+		UserID:    opts.UserID,
 	}
 
 	// Sign and get the complete encoded token as a string using the secret

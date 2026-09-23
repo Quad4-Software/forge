@@ -276,7 +276,7 @@ func listGiteaRepos(ctx context.Context, baseURL, owner, token string, opts Mass
 	// owner is a user, or auto-detection found no organization with this name
 	for page := 1; ; {
 		repos, resp, err := client.ListUserRepos(owner, gitea.ListReposOptions{
-			ListOptions: gitea.ListOptions{Page: page, PageSize: 50},
+			Page: page, PageSize: 50,
 		})
 		if err != nil {
 			return nil, err

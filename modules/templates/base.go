@@ -28,13 +28,3 @@ func ListWebTemplateAssetNames(assets *assetfs.LayeredFS) ([]string, error) {
 		return strings.HasPrefix(file, "mail/") || !strings.HasSuffix(file, ".tmpl")
 	}), nil
 }
-
-func ListMailTemplateAssetNames(assets *assetfs.LayeredFS) ([]string, error) {
-	files, err := assets.ListAllFiles(".", true)
-	if err != nil {
-		return nil, err
-	}
-	return slices.DeleteFunc(files, func(file string) bool {
-		return !strings.HasPrefix(file, "mail/") || !strings.HasSuffix(file, ".tmpl")
-	}), nil
-}

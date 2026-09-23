@@ -230,11 +230,9 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 	milestones := make([]*base.Milestone, 0, perPage)
 	for i := int64(1); ; i++ {
 		ms, _, err := g.client.Milestones.ListMilestones(g.repoID, &gitlab.ListMilestonesOptions{
-			State: &state,
-			ListOptions: gitlab.ListOptions{
-				Page:    i,
-				PerPage: int64(perPage),
-			},
+			State:   &state,
+			Page:    i,
+			PerPage: int64(perPage),
 		}, nil, gitlab.WithContext(g.ctx))
 		if err != nil {
 			return nil, err
@@ -300,10 +298,10 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 	perPage := g.maxPerPage
 	labels := make([]*base.Label, 0, perPage)
 	for i := int64(1); ; i++ {
-		ls, _, err := g.client.Labels.ListLabels(g.repoID, &gitlab.ListLabelsOptions{ListOptions: gitlab.ListOptions{
+		ls, _, err := g.client.Labels.ListLabels(g.repoID, &gitlab.ListLabelsOptions{
 			Page:    i,
 			PerPage: int64(perPage),
-		}}, nil, gitlab.WithContext(g.ctx))
+		}, nil, gitlab.WithContext(g.ctx))
 		if err != nil {
 			return nil, err
 		}
@@ -379,10 +377,8 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 	releases := make([]*base.Release, 0, perPage)
 	for i := int64(1); ; i++ {
 		ls, _, err := g.client.Releases.ListReleases(g.repoID, &gitlab.ListReleasesOptions{
-			ListOptions: gitlab.ListOptions{
-				Page:    i,
-				PerPage: int64(perPage),
-			},
+			Page:    i,
+			PerPage: int64(perPage),
 		}, nil, gitlab.WithContext(g.ctx))
 		if err != nil {
 			return nil, err
@@ -419,10 +415,8 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 		State:   &state,
 		Sort:    &sort,
 		OrderBy: &orderBy,
-		ListOptions: gitlab.ListOptions{
-			PerPage: int64(perPage),
-			Page:    int64(page),
-		},
+		PerPage: int64(perPage),
+		Page:    int64(page),
 	}
 
 	allIssues := make([]*base.Issue, 0, perPage)
@@ -456,7 +450,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 		awardPage := 1
 		for {
 			awards, _, err := g.client.AwardEmoji.ListIssueAwardEmoji(g.repoID, issue.IID, &gitlab.ListAwardEmojiOptions{
-				ListOptions: gitlab.ListOptions{Page: int64(awardPage), PerPage: int64(perPage)},
+				Page: int64(awardPage), PerPage: int64(perPage),
 			}, gitlab.WithContext(g.ctx))
 			if err != nil {
 				return nil, false, fmt.Errorf("error while listing issue awards: %w", err)
@@ -511,17 +505,13 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		var err error
 		if !context.IsMergeRequest {
 			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, commentable.GetForeignIndex(), &gitlab.ListIssueDiscussionsOptions{
-				ListOptions: gitlab.ListOptions{
-					Page:    page,
-					PerPage: int64(g.maxPerPage),
-				},
+				Page:    page,
+				PerPage: int64(g.maxPerPage),
 			}, nil, gitlab.WithContext(g.ctx))
 		} else {
 			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, commentable.GetForeignIndex(), &gitlab.ListMergeRequestDiscussionsOptions{
-				ListOptions: gitlab.ListOptions{
-					Page:    page,
-					PerPage: int64(g.maxPerPage),
-				},
+				Page:    page,
+				PerPage: int64(g.maxPerPage),
 			}, nil, gitlab.WithContext(g.ctx))
 		}
 
@@ -549,17 +539,13 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		var err error
 		if context.IsMergeRequest {
 			stateEvents, resp, err = g.client.ResourceStateEvents.ListMergeStateEvents(g.repoID, commentable.GetForeignIndex(), &gitlab.ListStateEventsOptions{
-				ListOptions: gitlab.ListOptions{
-					Page:    page,
-					PerPage: int64(g.maxPerPage),
-				},
+				Page:    page,
+				PerPage: int64(g.maxPerPage),
 			}, nil, gitlab.WithContext(g.ctx))
 		} else {
 			stateEvents, resp, err = g.client.ResourceStateEvents.ListIssueStateEvents(g.repoID, commentable.GetForeignIndex(), &gitlab.ListStateEventsOptions{
-				ListOptions: gitlab.ListOptions{
-					Page:    page,
-					PerPage: int64(g.maxPerPage),
-				},
+				Page:    page,
+				PerPage: int64(g.maxPerPage),
 			}, nil, gitlab.WithContext(g.ctx))
 		}
 		if err != nil {
@@ -644,11 +630,9 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 	view := "simple"
 	opt := &gitlab.ListProjectMergeRequestsOptions{
-		ListOptions: gitlab.ListOptions{
-			PerPage: int64(perPage),
-			Page:    int64(page),
-		},
-		View: &view,
+		PerPage: int64(perPage),
+		Page:    int64(page),
+		View:    &view,
 	}
 
 	allPRs := make([]*base.PullRequest, 0, perPage)
@@ -707,9 +691,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		awardPage := 1
 		for {
 			awards, _, err := g.client.AwardEmoji.ListMergeRequestAwardEmoji(g.repoID, pr.IID, &gitlab.ListAwardEmojiOptions{
-				ListOptions: gitlab.ListOptions{
-					Page: int64(awardPage), PerPage: int64(perPage),
-				},
+				Page: int64(awardPage), PerPage: int64(perPage),
 			}, gitlab.WithContext(g.ctx))
 			if err != nil {
 				return nil, false, fmt.Errorf("error while listing merge requests awards: %w", err)

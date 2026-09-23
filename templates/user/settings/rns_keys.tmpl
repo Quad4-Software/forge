@@ -34,6 +34,12 @@
 					{{if .GitDestination}}
 						<p>{{ctx.Locale.Tr "settings.rns_git_destination" (printf "rns://%s" .GitDestination)}}</p>
 					{{end}}
+					{{if .PageDestination}}
+						<p>{{ctx.Locale.Tr "settings.rns_page_destination" (printf "rns://%s" .PageDestination)}}</p>
+					{{end}}
+					{{if .LXMFDestination}}
+						<p>{{ctx.Locale.Tr "settings.rns_lxmf_destination" .LXMFDestination}}</p>
+					{{end}}
 				</div>
 				{{range .RNSKeys}}
 					<div class="flex-item">

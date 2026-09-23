@@ -21,8 +21,9 @@ type ForgeUserActivity struct {
 }
 
 func NewForgeUserActivityFromAp(activity ap.Activity) (ForgeUserActivity, error) {
-	result := ForgeUserActivity{}
-	result.Activity = activity
+	result := ForgeUserActivity{
+		Activity: activity,
+	}
 	note, err := NewForgeUserActivityNoteFromAp(activity.Object)
 	if err != nil {
 		return ForgeUserActivity{}, err
@@ -38,16 +39,17 @@ func NewForgeUserActivity(doer *user_model.User, actionID int64, content string)
 	id := fmt.Sprintf("%s/activities/%d", doer.APActorID(), actionID)
 	published := time.Now()
 
-	result := ForgeUserActivity{}
-	result.ID = ap.IRI(id + "/activity")
-	result.Type = ap.CreateType
-	result.Actor = ap.IRI(doer.APActorID())
-	result.Published = published
-	result.To = ap.ItemCollection{
-		ap.IRI("https://www.w3.org/ns/activitystreams#Public"),
-	}
-	result.CC = ap.ItemCollection{
-		ap.IRI(doer.APActorID() + "/followers"),
+	result := ForgeUserActivity{
+		ID:        ap.IRI(id + "/activity"),
+		Type:      ap.CreateType,
+		Actor:     ap.IRI(doer.APActorID()),
+		Published: published,
+		To: ap.ItemCollection{
+			ap.IRI("https://www.w3.org/ns/activitystreams#Public"),
+		},
+		CC: ap.ItemCollection{
+			ap.IRI(doer.APActorID() + "/followers"),
+		},
 	}
 	note, err := newNote(doer, content, id, published)
 	if err != nil {

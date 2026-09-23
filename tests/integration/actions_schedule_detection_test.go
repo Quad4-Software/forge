@@ -189,12 +189,10 @@ jobs:
 
 				createFileOpts := &api.CreateFileOptions{
 					ContentBase64: base64.StdEncoding.EncodeToString([]byte(workflowContent)),
-					FileOptions: api.FileOptions{
-						Message:       "Create workflow",
-						NewBranchName: prBranch,
-						Author:        api.Identity{Name: user2.Name, Email: user2.Email},
-						Committer:     api.Identity{Name: user2.Name, Email: user2.Email},
-					},
+					Message:       "Create workflow",
+					NewBranchName: prBranch,
+					Author:        api.Identity{Name: user2.Name, Email: user2.Email},
+					Committer:     api.Identity{Name: user2.Name, Email: user2.Email},
 				}
 				doAPICreateFile(testContext, workflowPath, createFileOpts)(t)
 				pr, err := doAPICreatePullRequest(testContext, user2.Name, repo.Name, repo.DefaultBranch, prBranch)(t)

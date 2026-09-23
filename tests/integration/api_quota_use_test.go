@@ -656,9 +656,7 @@ func testAPIQuotaEnforcement(t *testing.T) {
 
 					req := NewRequestWithJSON(t, "PUT", env.APIPathForRepo("/contents/plaything.txt"), api.UpdateFileOptions{
 						ContentBase64: base64.StdEncoding.EncodeToString([]byte("hello world")),
-						DeleteFileOptions: api.DeleteFileOptions{
-							SHA: fileSha,
-						},
+						SHA:           fileSha,
 					}).AddTokenAuth(env.User.Token)
 					env.User.Session.MakeRequest(t, req, http.StatusRequestEntityTooLarge)
 				})
@@ -680,9 +678,7 @@ func testAPIQuotaEnforcement(t *testing.T) {
 
 			req := NewRequestWithJSON(t, "PUT", env.APIPathForRepo("/contents/README.md"), api.UpdateFileOptions{
 				ContentBase64: base64.StdEncoding.EncodeToString([]byte("hello world")),
-				DeleteFileOptions: api.DeleteFileOptions{
-					SHA: "c0ffeebabe",
-				},
+				SHA:           "c0ffeebabe",
 			}).AddTokenAuth(env.User.Token)
 			env.User.Session.MakeRequest(t, req, http.StatusRequestEntityTooLarge)
 		})

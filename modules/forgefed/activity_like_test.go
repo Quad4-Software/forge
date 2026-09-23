@@ -79,11 +79,9 @@ func Test_LikeUnmarshalJSON(t *testing.T) {
 		"with ID": {
 			item: []byte(`{"type":"Like","actor":"https://repo.prod.meissa.de/api/activitypub/user-id/1","object":"https://codeberg.org/api/activitypub/repository-id/1"}`),
 			want: &forgefed.ForgeLike{
-				Activity: ap.Activity{
-					Type:   ap.LikeType,
-					Actor:  ap.IRI("https://repo.prod.meissa.de/api/activitypub/user-id/1"),
-					Object: ap.IRI("https://codeberg.org/api/activitypub/repository-id/1"),
-				},
+				Type:   ap.LikeType,
+				Actor:  ap.IRI("https://repo.prod.meissa.de/api/activitypub/user-id/1"),
+				Object: ap.IRI("https://codeberg.org/api/activitypub/repository-id/1"),
 			},
 			wantErr: nil,
 		},

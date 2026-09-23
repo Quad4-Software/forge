@@ -1287,9 +1287,7 @@ func bulkCreatePRs(t *testing.T, prCount int, repo *repo_model.Repository, token
 				"POST",
 				fmt.Sprintf("/api/v1/repos/%s/%s/contents/README-%d.md", repo.OwnerName, repo.Name, i),
 				&api.CreateFileOptions{
-					FileOptions: api.FileOptions{
-						NewBranchName: headBranchName,
-					},
+					NewBranchName: headBranchName,
 					ContentBase64: base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "Hello, world %d!\n", i)),
 				}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusCreated)

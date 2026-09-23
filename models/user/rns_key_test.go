@@ -59,11 +59,6 @@ func TestRNSKey(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, user1.ID, resolved.ID)
 
-	hashMap, err := user_model.GetVerifiedRNSIdentityHashesByUserIDs(db.DefaultContext, []int64{user1.ID, user2.ID})
-	require.NoError(t, err)
-	assert.Equal(t, []string{hash}, hashMap[user1.ID])
-	assert.Empty(t, hashMap[user2.ID])
-
 	key2, err := user_model.AddRNSKey(db.DefaultContext, user1, "phone", hash2, true)
 	require.NoError(t, err)
 	assert.True(t, key2.Verified)

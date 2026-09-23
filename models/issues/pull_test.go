@@ -64,9 +64,7 @@ func TestPullRequest_LoadHeadRepo(t *testing.T) {
 func TestPullRequestsNewest(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	prs, count, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
-		ListOptions: db.ListOptions{
-			Page: 1,
-		},
+		Page:     1,
 		State:    "open",
 		SortType: "newest",
 	})
@@ -103,9 +101,7 @@ func TestPullRequests_Closed_RecentSortType(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.sortType, func(t *testing.T) {
 			prs, _, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
-				ListOptions: db.ListOptions{
-					Page: 1,
-				},
+				Page:     1,
 				State:    "closed",
 				SortType: test.sortType,
 			})
@@ -151,9 +147,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 func TestPullRequestsOldest(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	prs, count, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
-		ListOptions: db.ListOptions{
-			Page: 1,
-		},
+		Page:     1,
 		State:    "open",
 		SortType: "oldest",
 	})

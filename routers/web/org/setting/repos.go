@@ -6,7 +6,6 @@ package setting
 import (
 	"net/http"
 
-	"forgejo.org/models/db"
 	repo_model "forgejo.org/models/repo"
 	"forgejo.org/modules/base"
 	"forgejo.org/modules/optional"
@@ -33,10 +32,8 @@ func Repos(ctx *context.Context) {
 	pageSize := setting.UI.Admin.RepoPagingNum
 
 	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: pageSize,
-		},
+		Page:        page,
+		PageSize:    pageSize,
 		Actor:       ctx.Doer,
 		OwnerID:     ctx.Org.Organization.ID,
 		OrderBy:     repo_model.OrderByFlatMap[sortOrder],

@@ -19,11 +19,12 @@ type ForgeLike struct {
 }
 
 func NewForgeLike(actorIRI, objectIRI string, startTime time.Time) (ForgeLike, error) {
-	result := ForgeLike{}
-	result.Type = ap.LikeType
-	result.Actor = ap.IRI(actorIRI)
-	result.Object = ap.IRI(objectIRI)
-	result.StartTime = startTime
+	result := ForgeLike{
+		Type:      ap.LikeType,
+		Actor:     ap.IRI(actorIRI),
+		Object:    ap.IRI(objectIRI),
+		StartTime: startTime,
+	}
 	if valid, err := validation.IsValid(result); !valid {
 		return ForgeLike{}, err
 	}

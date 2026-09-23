@@ -14,17 +14,19 @@ import (
 )
 
 func Test_NewForgeFollowValidation(t *testing.T) {
-	sut := forgefed.ForgeFollow{}
-	sut.Type = ap.FollowType
-	sut.Actor = ap.IRI("example.org/alice")
-	sut.Object = ap.IRI("example.org/bob")
+	sut := forgefed.ForgeFollow{
+		Type:   ap.FollowType,
+		Actor:  ap.IRI("example.org/alice"),
+		Object: ap.IRI("example.org/bob"),
+	}
 
 	valid, err := validation.IsValid(sut)
 	assert.True(t, valid, "sut is invalid: %v\n", err)
 
-	sut = forgefed.ForgeFollow{}
-	sut.Actor = ap.IRI("example.org/alice")
-	sut.Object = ap.IRI("example.org/bob")
+	sut = forgefed.ForgeFollow{
+		Actor:  ap.IRI("example.org/alice"),
+		Object: ap.IRI("example.org/bob"),
+	}
 
 	valid, err = validation.IsValid(sut)
 	assert.False(t, valid, "sut is valid: %v\n", err)

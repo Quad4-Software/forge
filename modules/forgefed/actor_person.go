@@ -42,13 +42,14 @@ func NewPersonID(uri, source string) (PersonID, error) {
 }
 
 func NewPersonIDFromModel(host, schema string, port uint16, softwareName, id string) (PersonID, error) {
-	result := PersonID{}
-	result.ID = id
-	result.Source = softwareName
-	result.Host = host
-	result.HostSchema = schema
-	result.HostPort = port
-	result.IsPortSupplemented = false
+	result := PersonID{
+		ID:                 id,
+		Source:             softwareName,
+		Host:               host,
+		HostSchema:         schema,
+		HostPort:           port,
+		IsPortSupplemented: false,
+	}
 
 	if softwareName == "forgejo" {
 		result.Path = personIDapiPathV1

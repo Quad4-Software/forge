@@ -349,8 +349,8 @@ func SingleRelease(ctx *context.Context) {
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	releases, _, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 1},
-		RepoID:      ctx.Repo.Repository.ID,
+		Page: 1, PageSize: 1,
+		RepoID: ctx.Repo.Repository.ID,
 		// Include tags in the search too.
 		IncludeTags: true,
 		TagNames:    []string{ctx.Params("*")},

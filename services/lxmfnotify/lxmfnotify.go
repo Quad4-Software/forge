@@ -48,25 +48,6 @@ func Deliverable(ctx context.Context, u *user_model.User) bool {
 	return err == nil && len(keys) > 0
 }
 
-// DeliverableVerified reports whether the user can be reached over LXMF
-// through a verified identity. Used for security notices which must not go
-// to unverified contact points.
-func DeliverableVerified(ctx context.Context, u *user_model.User) bool {
-	if !Available() {
-		return false
-	}
-	keys, err := user_model.GetRNSKeysByUserID(ctx, u.ID)
-	if err != nil {
-		return false
-	}
-	for _, k := range keys {
-		if k.Verified {
-			return true
-		}
-	}
-	return false
-}
-
 // identityHashes returns the identity hashes of the user. When verifiedOnly is
 // set only verified identities are returned.
 func identityHashes(ctx context.Context, u *user_model.User, verifiedOnly bool) []string {
@@ -117,10 +98,4 @@ func SendToIdentity(identityHash, subject, content string) {
 		return
 	}
 	sendAll([]string{identityHash}, subject, content)
-}
-
-// SendSecurityNotice sends a plain security notice to all verified
-// identities of the user.
-func SendSecurityNotice(ctx context.Context, u *user_model.User, subject, content string) {
-	SendMessage(ctx, u, subject, content, true)
 }

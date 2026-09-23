@@ -38,7 +38,7 @@ func MailParticipantsComment(ctx context.Context, c *issues_model.Comment, opTyp
 func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *issues_model.Comment, mentions []*user_model.User) (err error) {
 	visited := make(container.Set[int64], len(mentions)+1)
 	visited.Add(c.Poster.ID)
-	if err = mailIssueCommentBatch(
+	mailIssueCommentBatch(
 		&mailCommentContext{
 			Context:    ctx,
 			Issue:      pr.Issue,
@@ -47,8 +47,6 @@ func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *i
 			Content:    c.Content,
 			Comment:    c,
 		}, mentions, visited, true,
-	); err != nil {
-		log.Error("mailIssueCommentBatch: %v", err)
-	}
+	)
 	return nil
 }

@@ -59,25 +59,6 @@ func noDanglingArgs(ctx context.Context, c *cli.Command) (context.Context, error
 	return nil, nil
 }
 
-// confirm waits for user input which confirms an action
-func confirm() (bool, error) {
-	var response string
-
-	_, err := fmt.Scanln(&response)
-	if err != nil {
-		return false, err
-	}
-
-	switch strings.ToLower(response) {
-	case "y", "yes":
-		return true, nil
-	case "n", "no":
-		return false, nil
-	default:
-		return false, errors.New(response + " isn't a correct confirmation string")
-	}
-}
-
 func initDB(ctx context.Context) error {
 	setting.MustInstalled()
 	setting.LoadDBSetting()

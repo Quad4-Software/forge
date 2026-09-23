@@ -34,26 +34,6 @@ import (
 	runnerv1 "code.forgejo.org/forgejo/actions-proto/runner/v1"
 )
 
-// ToEmail convert models.EmailAddress to api.Email
-func ToEmail(email *user_model.EmailAddress) *api.Email {
-	return &api.Email{
-		Email:    email.Email,
-		Verified: email.IsActivated,
-		Primary:  email.IsPrimary,
-	}
-}
-
-// ToEmail convert models.EmailAddress to api.Email
-func ToEmailSearch(email *user_model.SearchEmailResult) *api.Email {
-	return &api.Email{
-		Email:    email.Email,
-		Verified: email.IsActivated,
-		Primary:  email.IsPrimary,
-		UserID:   email.UID,
-		UserName: email.Name,
-	}
-}
-
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
 func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName string, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
@@ -157,7 +137,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	return &api.BranchProtection{
-		BranchName:                    branchName,
+		BranchName:                    branchName, //nolint:staticcheck
 		RuleName:                      bp.RuleName,
 		EnablePush:                    bp.CanPush,
 		EnablePushWhitelist:           bp.EnableWhitelist,
@@ -377,7 +357,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
 			Permission:              t.AccessMode.String(),
-			Units:                   t.GetUnitNames(),
+			Units:                   t.GetUnitNames(), //nolint:staticcheck
 			UnitsMap:                t.GetUnitsMap(),
 		}
 

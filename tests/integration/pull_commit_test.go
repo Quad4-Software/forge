@@ -128,18 +128,16 @@ func TestPullCommitSignature(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			options := &api.CreateFileOptions{
-				FileOptions: api.FileOptions{
-					BranchName:    fromBranch,
-					NewBranchName: toBranch,
-					Message:       fmt.Sprintf("from:%s to:%s path:%s", fromBranch, toBranch, filePath),
-					Author: api.Identity{
-						Name:  user.FullName,
-						Email: user.Email,
-					},
-					Committer: api.Identity{
-						Name:  user.FullName,
-						Email: user.Email,
-					},
+				BranchName:    fromBranch,
+				NewBranchName: toBranch,
+				Message:       fmt.Sprintf("from:%s to:%s path:%s", fromBranch, toBranch, filePath),
+				Author: api.Identity{
+					Name:  user.FullName,
+					Email: user.Email,
+				},
+				Committer: api.Identity{
+					Name:  user.FullName,
+					Email: user.Email,
 				},
 				ContentBase64: base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "This is new text for %s", filePath)),
 			}

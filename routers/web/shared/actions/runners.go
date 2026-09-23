@@ -137,10 +137,8 @@ func RunnersList(ctx *context.Context) {
 	page := max(ctx.FormInt("page"), 1)
 
 	opts := actions_model.FindRunnerOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: 100,
-		},
+		Page:        page,
+		PageSize:    100,
 		WithVisible: true,
 		Sort:        ctx.Req.URL.Query().Get("sort"),
 		Filter:      ctx.Req.URL.Query().Get("q"),
@@ -229,10 +227,8 @@ func RunnerDetails(ctx *context.Context) {
 	}
 
 	opts := actions_model.FindTaskOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: 30,
-		},
+		Page:     page,
+		PageSize: 30,
 		RunnerID: runner.ID,
 		OwnerID:  rCtx.OwnerID,
 		RepoID:   rCtx.RepoID,

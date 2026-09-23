@@ -88,10 +88,8 @@ func Home(ctx *context.Context) {
 	ctx.Data["OpenGraphDescription"] = setting.UI.Meta.Description
 
 	repos, _, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: homeTrendingReposCount,
-		},
+		Page:               1,
+		PageSize:           homeTrendingReposCount,
 		Actor:              ctx.Doer,
 		AllPublic:          true,
 		OrderBy:            db.SearchOrderByStarsReverse,
@@ -114,10 +112,10 @@ func HomeSitemap(ctx *context.Context) {
 	m := sitemap.NewSitemapIndex()
 	if !setting.Service.Explore.DisableUsersPage {
 		_, cnt, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
-			Type:        user_model.UserTypeIndividual,
-			ListOptions: db.ListOptions{PageSize: 1},
-			IsActive:    optional.Some(true),
-			Visible:     []structs.VisibleType{structs.VisibleTypePublic},
+			Type:     user_model.UserTypeIndividual,
+			PageSize: 1,
+			IsActive: optional.Some(true),
+			Visible:  []structs.VisibleType{structs.VisibleTypePublic},
 		})
 		if err != nil {
 			ctx.ServerError("SearchUsers", err)
@@ -132,9 +130,7 @@ func HomeSitemap(ctx *context.Context) {
 	}
 
 	_, cnt, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			PageSize: 1,
-		},
+		PageSize:  1,
 		Actor:     ctx.Doer,
 		AllPublic: true,
 	})

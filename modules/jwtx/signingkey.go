@@ -599,10 +599,17 @@ func ParseJWKToPublicKey(jwk map[string]any) (any, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid ECDSA JWK 'y' field: %w", err)
 		}
-		pubKey := &ecdsa.PublicKey{
-			Curve: curve,
-			X:     new(big.Int).SetBytes(xBytes),
-			Y:     new(big.Int).SetBytes(yBytes),
+		byteLen := (curve.Params().BitSize + 7) / 8
+		if len(xBytes) > byteLen || len(yBytes) > byteLen {
+			return nil, fmt.Errorf("invalid ECDSA JWK coordinate length")
+		}
+		point := make([]byte, 1+2*byteLen)
+		point[0] = 4
+		copy(point[1+byteLen-len(xBytes):1+byteLen], xBytes)
+		copy(point[1+2*byteLen-len(yBytes):], yBytes)
+		pubKey, err := ecdsa.ParseUncompressedPublicKey(curve, point)
+		if err != nil {
+			return nil, fmt.Errorf("invalid ECDSA JWK public key: %w", err)
 		}
 		return pubKey, nil
 	default:

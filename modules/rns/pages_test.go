@@ -8,6 +8,7 @@ import (
 
 	"github.com/Quad4-Software/Reticulum-Go/pkg/rnsgit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPageVars(t *testing.T) {
@@ -17,7 +18,7 @@ func TestPageVars(t *testing.T) {
 		"var_ref": "main",
 		"other":   "ignored",
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	vars := pageVars(data)
 	assert.Equal(t, "owner", vars["g"])
 	assert.Equal(t, "repo", vars["r"])

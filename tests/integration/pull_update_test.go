@@ -87,10 +87,8 @@ func TestAPIPullUpdateAccessTokenResources(t *testing.T) {
 		createPullRequest := func(repoFullname string, pullRequest *api.PullRequest) {
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/contents", repoFullname),
 				&api.ChangeFilesOptions{
-					FileOptions: api.FileOptions{
-						NewBranchName: "prtest",
-					},
-					Files: []*api.ChangeFileOperation{},
+					NewBranchName: "prtest",
+					Files:         []*api.ChangeFileOperation{},
 				}).AddTokenAuth(writeToken)
 			MakeRequest(t, req, http.StatusCreated)
 
@@ -299,18 +297,16 @@ func TestAPIPullAllowMaintainerEditRestrictedHead(t *testing.T) {
 		// Attempt modification by editing the realBase's main branch via API:
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/File_A", realBaseRepo.OwnerName, realBaseRepo.Name),
 			&api.CreateFileOptions{
-				FileOptions: api.FileOptions{
-					BranchName:    "main",
-					NewBranchName: "main",
-					Message:       "illegal change",
-					Author: api.Identity{
-						Name:  forkUser.FullName,
-						Email: forkUser.Email,
-					},
-					Committer: api.Identity{
-						Name:  forkUser.FullName,
-						Email: forkUser.Email,
-					},
+				BranchName:    "main",
+				NewBranchName: "main",
+				Message:       "illegal change",
+				Author: api.Identity{
+					Name:  forkUser.FullName,
+					Email: forkUser.Email,
+				},
+				Committer: api.Identity{
+					Name:  forkUser.FullName,
+					Email: forkUser.Email,
 				},
 				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Some content.")),
 			}).
@@ -395,18 +391,16 @@ func TestAPIPullAllowMaintainerEditRestrictedHeadRepoSpecific(t *testing.T) {
 		// Attempt modification by editing the realBase's main branch via API:
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/File_A", forkRepo.OwnerName, forkRepo.Name),
 			&api.CreateFileOptions{
-				FileOptions: api.FileOptions{
-					BranchName:    "pull-request",
-					NewBranchName: "pull-request",
-					Message:       "legal change, legal scope...",
-					Author: api.Identity{
-						Name:  baseRepo.Owner.FullName,
-						Email: baseRepo.Owner.Email,
-					},
-					Committer: api.Identity{
-						Name:  baseRepo.Owner.FullName,
-						Email: baseRepo.Owner.Email,
-					},
+				BranchName:    "pull-request",
+				NewBranchName: "pull-request",
+				Message:       "legal change, legal scope...",
+				Author: api.Identity{
+					Name:  baseRepo.Owner.FullName,
+					Email: baseRepo.Owner.Email,
+				},
+				Committer: api.Identity{
+					Name:  baseRepo.Owner.FullName,
+					Email: baseRepo.Owner.Email,
 				},
 				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Some content.")),
 			}).
@@ -421,18 +415,16 @@ func TestAPIPullAllowMaintainerEditRestrictedHeadRepoSpecific(t *testing.T) {
 		)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/File_C", forkRepo.OwnerName, forkRepo.Name),
 			&api.CreateFileOptions{
-				FileOptions: api.FileOptions{
-					BranchName:    "pull-request",
-					NewBranchName: "pull-request",
-					Message:       "legal change, but illegal scope...",
-					Author: api.Identity{
-						Name:  baseRepo.Owner.FullName,
-						Email: baseRepo.Owner.Email,
-					},
-					Committer: api.Identity{
-						Name:  baseRepo.Owner.FullName,
-						Email: baseRepo.Owner.Email,
-					},
+				BranchName:    "pull-request",
+				NewBranchName: "pull-request",
+				Message:       "legal change, but illegal scope...",
+				Author: api.Identity{
+					Name:  baseRepo.Owner.FullName,
+					Email: baseRepo.Owner.Email,
+				},
+				Committer: api.Identity{
+					Name:  baseRepo.Owner.FullName,
+					Email: baseRepo.Owner.Email,
 				},
 				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Some content.")),
 			}).

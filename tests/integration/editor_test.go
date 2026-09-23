@@ -523,14 +523,10 @@ index 0000000000000000000000000000000000000000..be399c4b817c2fd9e1e6781ed6af75ef
 +git --git-dir="$origin_git" update-ref refs/heads/output-301cd34159 "$commit" || exit 7
 +exit 0
 `,
-				DeleteFileOptions: api.DeleteFileOptions{
-					SHA: "1111",
-					FileOptions: api.FileOptions{
-						Message:       "Hello git-apply bug?",
-						BranchName:    "main",
-						NewBranchName: "main",
-					},
-				},
+				SHA:           "1111",
+				Message:       "Hello git-apply bug?",
+				BranchName:    "main",
+				NewBranchName: "main",
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusCreated)
 		}
@@ -567,14 +563,10 @@ index 0000000000000000000000000000000000000000..be399c4b817c2fd9e1e6781ed6af75ef
 @@ -0,0 +1,14 @@
 +new-git-dir
 `,
-				DeleteFileOptions: api.DeleteFileOptions{
-					SHA: "1111",
-					FileOptions: api.FileOptions{
-						Message:       "Hello git-apply bug?",
-						BranchName:    "main",
-						NewBranchName: "main",
-					},
-				},
+				SHA:           "1111",
+				Message:       "Hello git-apply bug?",
+				BranchName:    "main",
+				NewBranchName: "main",
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusCreated)
 		}

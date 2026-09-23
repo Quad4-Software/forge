@@ -2334,9 +2334,7 @@ func (tester *PullRequestCommentPlacementTester) changeFileOnBranch(sourceBranch
 	DecodeJSON(tester.t, resp, &existingFile)
 
 	opts := api.UpdateFileOptions{
-		DeleteFileOptions: api.DeleteFileOptions{
-			SHA: existingFile.SHA,
-		},
+		SHA:           existingFile.SHA,
 		ContentBase64: base64.StdEncoding.EncodeToString([]byte(newContent)),
 	}
 	if targetBranchIsNew {

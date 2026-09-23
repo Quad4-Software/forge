@@ -91,11 +91,9 @@ func registerActionsCleanup() {
 
 func registerOfflineRunnersCleanup() {
 	RegisterTaskFatal("cleanup_offline_runners", &CleanupOfflineRunnersConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    false,
-			RunAtStart: false,
-			Schedule:   "@midnight",
-		},
+		Enabled:         false,
+		RunAtStart:      false,
+		Schedule:        "@midnight",
 		GlobalScopeOnly: true,
 		OlderThan:       time.Hour * 24,
 	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {

@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"forgejo.org/models/db"
 	repo_model "forgejo.org/models/repo"
 	unit_model "forgejo.org/models/unit"
 	"forgejo.org/modules/log"
@@ -20,11 +19,9 @@ func disableMirrorActionsUnit(ctx context.Context, logger log.Logger, autofix bo
 
 	for page := 1; ; page++ {
 		repos, _, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: repo_model.RepositoryListDefaultPageSize,
-				Page:     page,
-			},
-			Mirror: optional.Some(true),
+			PageSize: repo_model.RepositoryListDefaultPageSize,
+			Page:     page,
+			Mirror:   optional.Some(true),
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepository: %w", err)

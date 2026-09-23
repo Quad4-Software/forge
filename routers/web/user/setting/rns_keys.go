@@ -32,6 +32,8 @@ func RNSKeys(ctx *context.Context) {
 	ctx.Data["EnableLXMF"] = setting.RNS.EnableLXMF
 	ctx.Data["IdentityHash"] = rns.IdentityHash()
 	ctx.Data["GitDestination"] = rns.GitDestinationHash()
+	ctx.Data["PageDestination"] = rns.PageDestinationHash()
+	ctx.Data["LXMFDestination"] = rns.LXMFDeliveryHash()
 
 	loadRNSKeysData(ctx)
 
@@ -61,6 +63,8 @@ func RNSKeysPost(ctx *context.Context) {
 	ctx.Data["EnableLXMF"] = setting.RNS.EnableLXMF
 	ctx.Data["IdentityHash"] = rns.IdentityHash()
 	ctx.Data["GitDestination"] = rns.GitDestinationHash()
+	ctx.Data["PageDestination"] = rns.PageDestinationHash()
+	ctx.Data["LXMFDestination"] = rns.LXMFDeliveryHash()
 
 	if ctx.HasError() {
 		loadRNSKeysData(ctx)

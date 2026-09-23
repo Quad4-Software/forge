@@ -162,11 +162,9 @@ func loadAccessTokenCreateData(ctx *context.Context) {
 		// it would really balloon the search results to an impractical number of repos.
 		OwnerID: ctx.Doer.ID,
 
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: pageSize,
-		},
-		OrderBy: db.SearchOrderByAlphabetically, // match sorting in getSelectedRepos for consistency
+		Page:     page,
+		PageSize: pageSize,
+		OrderBy:  db.SearchOrderByAlphabetically, // match sorting in getSelectedRepos for consistency
 	}
 	cond := repo_model.SearchRepositoryCondition(repoSearch)
 	// Exclude all the repos that are currently in `form.SelectedRepo` from the search, by omitting them from the search

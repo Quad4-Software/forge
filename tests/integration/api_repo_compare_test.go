@@ -32,21 +32,19 @@ func testAPICompareCommits(t *testing.T, objectFormat git.ObjectFormat) {
 		newBranchAndFile := func(ctx APITestContext, user *user_model.User, branch, filename string) func(*testing.T) {
 			return func(t *testing.T) {
 				doAPICreateFile(ctx, filename, &api.CreateFileOptions{
-					FileOptions: api.FileOptions{
-						NewBranchName: branch,
-						Message:       "create " + filename,
-						Author: api.Identity{
-							Name:  user.Name,
-							Email: user.Email,
-						},
-						Committer: api.Identity{
-							Name:  user.Name,
-							Email: user.Email,
-						},
-						Dates: api.CommitDateOptions{
-							Author:    time.Now(),
-							Committer: time.Now(),
-						},
+					NewBranchName: branch,
+					Message:       "create " + filename,
+					Author: api.Identity{
+						Name:  user.Name,
+						Email: user.Email,
+					},
+					Committer: api.Identity{
+						Name:  user.Name,
+						Email: user.Email,
+					},
+					Dates: api.CommitDateOptions{
+						Author:    time.Now(),
+						Committer: time.Now(),
 					},
 					ContentBase64: base64.StdEncoding.EncodeToString([]byte("content " + filename)),
 				})(t)

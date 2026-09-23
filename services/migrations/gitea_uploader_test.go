@@ -537,10 +537,8 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.Len(t, labels, 12)
 
 	releases, err := db.Find[repo_model.Release](db.DefaultContext, repo_model.FindReleasesOptions{
-		ListOptions: db.ListOptions{
-			PageSize: 10,
-			Page:     0,
-		},
+		PageSize:    10,
+		Page:        0,
 		IncludeTags: true,
 		RepoID:      repo.ID,
 	})
@@ -548,10 +546,8 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.Len(t, releases, 8)
 
 	releases, err = db.Find[repo_model.Release](db.DefaultContext, repo_model.FindReleasesOptions{
-		ListOptions: db.ListOptions{
-			PageSize: 10,
-			Page:     0,
-		},
+		PageSize:    10,
+		Page:        0,
 		IncludeTags: false,
 		RepoID:      repo.ID,
 	})

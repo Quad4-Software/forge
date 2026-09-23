@@ -267,10 +267,8 @@ func TestGetColumnsPagination(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			columns, total, err := db.FindAndCount[Column](t.Context(), FindColumnOptions{
-				ListOptions: db.ListOptions{
-					PageSize: tt.pageSize,
-					Page:     tt.page,
-				},
+				PageSize:  tt.pageSize,
+				Page:      tt.page,
 				ProjectID: project1.ID,
 			})
 			require.NoError(t, err)
@@ -315,10 +313,8 @@ func TestColumnGetIssuesPagination(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			issues, total, err := db.FindAndCount[ProjectIssue](t.Context(),
 				FindProjectIssueOptions{
-					ListOptions: db.ListOptions{
-						PageSize: tt.pageSize,
-						Page:     tt.page,
-					},
+					PageSize:        tt.pageSize,
+					Page:            tt.page,
 					ProjectID:       column1.ProjectID,
 					ProjectColumnID: column1.ID,
 				},

@@ -33,11 +33,6 @@ var (
 	PasswordReset AuthorizationPurpose = "password_reset"
 )
 
-// Used to activate the specified email address for a user.
-func EmailActivation(email string) AuthorizationPurpose {
-	return AuthorizationPurpose("email_activation:" + email)
-}
-
 // Used to verify a Reticulum identity registered by a user.
 func RNSKeyVerification(keyID int64) AuthorizationPurpose {
 	return AuthorizationPurpose("rns_key_verify:" + strconv.FormatInt(keyID, 10))

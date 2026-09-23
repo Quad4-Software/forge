@@ -296,10 +296,7 @@ func MassMigrateConfirmPost(ctx *context.Context) {
 			if err := repo_model.CheckCreateRepository(ctx, ctx.Doer, ctxUser, opts.RepoName); err != nil {
 				return err
 			}
-			if err := task.MigrateRepository(ctx, ctx.Doer, ctxUser, opts); err != nil {
-				return err
-			}
-			return nil
+			return task.MigrateRepository(ctx, ctx.Doer, ctxUser, opts)
 		}()
 
 		if err != nil {

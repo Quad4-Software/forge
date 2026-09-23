@@ -42,11 +42,9 @@ func startTasks(ctx context.Context) error {
 	for page := 1; ; page++ {
 		// Retrieve the specs for the current page
 		specs, _, err := actions_model.FindSpecs(ctx, actions_model.FindSpecOptions{
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: pageSize,
-			},
-			Next: now.Unix(),
+			Page:     page,
+			PageSize: pageSize,
+			Next:     now.Unix(),
 		})
 		if err != nil {
 			return fmt.Errorf("find specs: %w", err)

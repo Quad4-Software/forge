@@ -689,9 +689,7 @@ func TestMirrorPullLFS(t *testing.T) {
 			"POST",
 			fmt.Sprintf("/api/v1/repos/%s/%s/contents/my-lfs-file.txt", sourceRepo.OwnerName, sourceRepo.Name),
 			&structs.CreateFileOptions{
-				FileOptions: structs.FileOptions{
-					BranchName: sourceRepo.DefaultBranch,
-				},
+				BranchName:    sourceRepo.DefaultBranch,
 				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Hello!")),
 			}).AddTokenAuth(apiToken)
 		MakeRequest(t, req, http.StatusCreated)
@@ -725,9 +723,7 @@ func TestMirrorPullLFS(t *testing.T) {
 				"POST",
 				fmt.Sprintf("/api/v1/repos/%s/%s/contents/my-second-lfs-file.txt", sourceRepo.OwnerName, sourceRepo.Name),
 				&structs.CreateFileOptions{
-					FileOptions: structs.FileOptions{
-						BranchName: sourceRepo.DefaultBranch,
-					},
+					BranchName:    sourceRepo.DefaultBranch,
 					ContentBase64: base64.StdEncoding.EncodeToString([]byte("Hello, this is a new file!")),
 				}).AddTokenAuth(apiToken)
 			MakeRequest(t, req, http.StatusCreated)

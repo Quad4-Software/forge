@@ -125,7 +125,7 @@ func TestDeliverTestPayloadWithoutPushEvent(t *testing.T) {
 	}))
 	t.Cleanup(s.Close)
 
-	hookEvent := webhook_module.HookEvent{ChooseEvents: true, HookEvents: webhook_module.HookEvents{Release: true}}
+	hookEvent := webhook_module.HookEvent{ChooseEvents: true, Release: true}
 	hook := &webhook_model.Webhook{
 		RepoID:      3,
 		URL:         s.URL + "/webhook",

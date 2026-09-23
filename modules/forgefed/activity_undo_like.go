@@ -19,10 +19,11 @@ type ForgeUndoLike struct {
 }
 
 func NewForgeUndoLike(actorIRI, objectIRI string, startTime time.Time) (ForgeUndoLike, error) {
-	result := ForgeUndoLike{}
-	result.Type = ap.UndoType
-	result.Actor = ap.IRI(actorIRI)
-	result.StartTime = startTime
+	result := ForgeUndoLike{
+		Type:      ap.UndoType,
+		Actor:     ap.IRI(actorIRI),
+		StartTime: startTime,
+	}
 
 	like := ap.Activity{}
 	like.Type = ap.LikeType

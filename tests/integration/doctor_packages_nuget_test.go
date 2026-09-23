@@ -89,12 +89,10 @@ func TestDoctorPackagesNuget(t *testing.T) {
 				Metadata:         nil,
 			},
 			&packages_service.PackageFileCreationInfo{
-				PackageFileInfo: packages_service.PackageFileInfo{
-					Filename: strings.ToLower(fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion)),
-				},
-				Creator: doer,
-				Data:    pkgBuf,
-				IsLead:  true,
+				Filename: strings.ToLower(fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion)),
+				Creator:  doer,
+				Data:     pkgBuf,
+				IsLead:   true,
 			},
 		)
 		require.NoError(t, err, "Error creating package and adding file")

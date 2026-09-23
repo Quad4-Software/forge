@@ -81,15 +81,13 @@ func CreateAuthorizationToken(task *actions_model.ActionTask, gitGtx map[string]
 
 	runIDJobID := fmt.Sprintf("%d:%d", runID, jobID)
 	claims := AuthorizationTokenClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
-			NotBefore: jwt.NewNumericDate(now),
-		},
-		Scp:    fmt.Sprintf("Actions.Results:%s", runIDJobID),
-		Ac:     string(ac),
-		TaskID: taskID,
-		RunID:  runID,
-		JobID:  jobID,
+		ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
+		NotBefore: jwt.NewNumericDate(now),
+		Scp:       fmt.Sprintf("Actions.Results:%s", runIDJobID),
+		Ac:        string(ac),
+		TaskID:    taskID,
+		RunID:     runID,
+		JobID:     jobID,
 	}
 
 	// Only populate OIDC information if the task has OIDC enabled.

@@ -37,11 +37,9 @@ func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.
 			continue
 		}
 		locale := translation.NewLocale(to.Language)
-		destination := locale.TrString("mail.repo.transfer.to_you")
 		subject := locale.TrString("mail.repo.transfer.subject_to_you", doer.DisplayName(), repo.FullName())
 		if newOwner.IsOrganization() {
-			destination = newOwner.DisplayName()
-			subject = locale.TrString("mail.repo.transfer.subject_to", doer.DisplayName(), repo.FullName(), destination)
+			subject = locale.TrString("mail.repo.transfer.subject_to", doer.DisplayName(), repo.FullName(), newOwner.DisplayName())
 		}
 		deliverNotice(ctx, to, subject, subject+"\n\n"+repo.HTMLURL())
 	}

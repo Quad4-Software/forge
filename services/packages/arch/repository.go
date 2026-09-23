@@ -151,10 +151,8 @@ func BuildPacmanDB(ctx context.Context, ownerID int64, group, arch string) error
 		fmt.Sprintf("%s.db.sig", arch): sig,
 	} {
 		_, err = packages_service.AddFileToPackageVersionInternal(ctx, pv, &packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     name,
-				CompositeKey: group,
-			},
+			Filename:          name,
+			CompositeKey:      group,
 			Creator:           user_model.NewGhostUser(),
 			Data:              data,
 			IsLead:            false,

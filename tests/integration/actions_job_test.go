@@ -430,21 +430,19 @@ jobs:
 				createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, tc.treePath, opts)
 				// user2 creates a pull request
 				doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
-					FileOptions: api.FileOptions{
-						NewBranchName: tc.name,
-						Message:       "create user2-patch.txt",
-						Author: api.Identity{
-							Name:  user2.Name,
-							Email: user2.Email,
-						},
-						Committer: api.Identity{
-							Name:  user2.Name,
-							Email: user2.Email,
-						},
-						Dates: api.CommitDateOptions{
-							Author:    time.Now(),
-							Committer: time.Now(),
-						},
+					NewBranchName: tc.name,
+					Message:       "create user2-patch.txt",
+					Author: api.Identity{
+						Name:  user2.Name,
+						Email: user2.Email,
+					},
+					Committer: api.Identity{
+						Name:  user2.Name,
+						Email: user2.Email,
+					},
+					Dates: api.CommitDateOptions{
+						Author:    time.Now(),
+						Committer: time.Now(),
 					},
 					ContentBase64: base64.StdEncoding.EncodeToString([]byte("user2-fix")),
 				})(t)
@@ -660,21 +658,19 @@ jobs:
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "user2/patch-1",
-				Message:       "create user2-patch.txt",
-				Author: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Committer: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			NewBranchName: "user2/patch-1",
+			Message:       "create user2-patch.txt",
+			Author: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user2-fix")),
 		})(t)
@@ -759,21 +755,19 @@ func createActionsTestRepo(t *testing.T, authToken, repoName string, isPrivate b
 
 func getWorkflowCreateFileOptions(u *user_model.User, branch, msg, content string) *api.CreateFileOptions {
 	return &api.CreateFileOptions{
-		FileOptions: api.FileOptions{
-			BranchName: branch,
-			Message:    msg,
-			Author: api.Identity{
-				Name:  u.Name,
-				Email: u.Email,
-			},
-			Committer: api.Identity{
-				Name:  u.Name,
-				Email: u.Email,
-			},
-			Dates: api.CommitDateOptions{
-				Author:    time.Now(),
-				Committer: time.Now(),
-			},
+		BranchName: branch,
+		Message:    msg,
+		Author: api.Identity{
+			Name:  u.Name,
+			Email: u.Email,
+		},
+		Committer: api.Identity{
+			Name:  u.Name,
+			Email: u.Email,
+		},
+		Dates: api.CommitDateOptions{
+			Author:    time.Now(),
+			Committer: time.Now(),
 		},
 		ContentBase64: base64.StdEncoding.EncodeToString([]byte(content)),
 	}

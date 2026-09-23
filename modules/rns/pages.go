@@ -7,13 +7,13 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"maps"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"forgejo.org/models/db"
 	repo_model "forgejo.org/models/repo"
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/optional"
@@ -200,11 +200,11 @@ func (s *PageServer) accessibleRepos(ctx context.Context, remote *identity.Ident
 		return nil, nil
 	}
 	opts := &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{Page: 0, PageSize: maxListRepos},
-		Actor:       actor,
-		OwnerID:     ownerID,
-		AllPublic:   true,
-		AllLimited:  true,
+		Page: 0, PageSize: maxListRepos,
+		Actor:      actor,
+		OwnerID:    ownerID,
+		AllPublic:  true,
+		AllLimited: true,
 	}
 	if anonymous {
 		opts.IsPrivate = optional.Some(false)
@@ -316,7 +316,7 @@ func (s *PageServer) serveRepo(_ string, data, _, _ []byte, remote *identity.Ide
 	b.WriteString("`a  " + mLink("Refs", pageRefs, repoVars(rr.owner.Name, rr.repo.Name)))
 	b.WriteString("`a\n\n")
 	if n := s.git.CommitCount(rr.gitDir, ref); n > 0 {
-		b.WriteString(fmt.Sprintf("%d commits\n\n", n))
+		fmt.Fprintf(&b, "%d commits\n\n", n)
 	}
 	if readme, _, ok := s.git.Readme(rr.gitDir, ref); ok && readme != "" {
 		b.WriteString("-\n\n")
@@ -332,9 +332,7 @@ func (s *PageServer) serveRepo(_ string, data, _, _ []byte, remote *identity.Ide
 
 func mergeVars(m map[string]string, k, v string) map[string]string {
 	out := make(map[string]string, len(m)+1)
-	for kk, vv := range m {
-		out[kk] = vv
-	}
+	maps.Copy(out, m)
 	out[k] = v
 	return out
 }
@@ -369,10 +367,7 @@ func (s *PageServer) serveTree(_ string, data, _, _ []byte, remote *identity.Ide
 	if start >= len(entries) && len(entries) > 0 {
 		start = 0
 	}
-	end := start + treePageSize
-	if end > len(entries) {
-		end = len(entries)
-	}
+	end := min(start+treePageSize, len(entries))
 	for _, e := range entries[start:end] {
 		child := e.Name
 		if dirPath != "" {
@@ -419,7 +414,7 @@ func (s *PageServer) serveBlob(_ string, data, _, _ []byte, remote *identity.Ide
 	b.WriteString(mLink("Repo", pageRepo, base) + " / " +
 		mLink("Tree", pageTree, mergeVars(mergeVars(base, "ref", ref), "path", dirOf(filePath))) + "\n\n")
 	if info.Size > blobLimit {
-		b.WriteString(fmt.Sprintf("File too large to display (%d bytes)\n", info.Size))
+		fmt.Fprintf(&b, "File too large to display (%d bytes)\n", info.Size)
 		return []byte(b.String())
 	}
 	content, err := s.git.ShowBlob(rr.gitDir, ref, filePath)
@@ -463,7 +458,7 @@ func (s *PageServer) serveCommits(_ string, data, _, _ []byte, remote *identity.
 	b.WriteString(mLink("Repo", pageRepo, base) + " /\n\n")
 	for _, e := range entries {
 		ts := time.Unix(e.UnixTime, 0).UTC().Format("2006-01-02")
-		b.WriteString(fmt.Sprintf("`a%s `a", ts))
+		fmt.Fprintf(&b, "`a%s `a", ts)
 		b.WriteString(mLink(e.Subject, pageCommit, mergeVars(base, "h", e.SHA)))
 		b.WriteString("`a  " + mEscape(e.Author) + "`a\n")
 	}

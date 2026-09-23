@@ -37,12 +37,10 @@ func CreateAuthorizationToken(u *user_model.User, scope auth_model.AccessTokenSc
 	}
 
 	claims := packageClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expiry),
-			NotBefore: jwt.NewNumericDate(now),
-		},
-		UserID: u.ID,
-		Scope:  scope,
+		ExpiresAt: jwt.NewNumericDate(expiry),
+		NotBefore: jwt.NewNumericDate(now),
+		UserID:    u.ID,
+		Scope:     scope,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 

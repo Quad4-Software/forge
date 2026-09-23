@@ -28,7 +28,6 @@ import (
 	user_model "forgejo.org/models/user"
 	"forgejo.org/models/webhook"
 	actions_module "forgejo.org/modules/actions"
-	"forgejo.org/modules/lfs"
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/optional"
 	"forgejo.org/modules/setting"
@@ -284,7 +283,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, opts DeleteRepo
 
 		lfsPaths = make([]string, 0, len(lfsObjects))
 		for _, v := range lfsObjects {
-			count, err := db.CountByBean(ctx, &git_model.LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
+			count, err := db.CountByBean(ctx, &git_model.LFSMetaObject{Oid: v.Oid})
 			if err != nil {
 				return err
 			}
@@ -505,13 +504,11 @@ func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID 
 func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User) error {
 	for {
 		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: repo_model.RepositoryListDefaultPageSize,
-				Page:     1,
-			},
-			Private: true,
-			OwnerID: owner.ID,
-			Actor:   owner,
+			PageSize: repo_model.RepositoryListDefaultPageSize,
+			Page:     1,
+			Private:  true,
+			OwnerID:  owner.ID,
+			Actor:    owner,
 		})
 		if err != nil {
 			return fmt.Errorf("GetUserRepositories: %w", err)

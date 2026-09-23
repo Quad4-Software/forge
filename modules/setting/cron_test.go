@@ -31,9 +31,7 @@ EXTEND = true
 	require.NoError(t, err)
 
 	extended := &Extended{
-		BaseStruct: BaseStruct{
-			Second: "queen of hearts",
-		},
+		Second: "queen of hearts",
 	}
 
 	_, err = getCronSettings(cfg, "test", extended)
@@ -72,15 +70,11 @@ THIRD = white rabbit
 	require.NoError(t, err)
 
 	extended := &Extended2{
-		Extended: Extended{
-			BaseStruct: BaseStruct{
-				Enabled:    false,
-				RunAtStart: false,
-				Schedule:   "@every 72h",
-			},
-			Extend: false,
-		},
-		Third: "black rabbit",
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@every 72h",
+		Extend:     false,
+		Third:      "black rabbit",
 	}
 
 	_, err = getCronSettings(cfg, "test", extended)
