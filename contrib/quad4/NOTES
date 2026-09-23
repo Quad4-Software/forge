@@ -102,7 +102,10 @@ DevOps companions (optional next)
   Prefer behind RavenGuard or private network. Catalog: https://selfh.st/apps/
   CI: Forgejo Actions runner, or Woodpecker CI
   Registry: Zot (light OCI) or Harbor (full featured)
-  Objects/LFS: Garage or SeaweedFS (S3-compatible; avoid unmaintained MinIO)
+  Objects/LFS: built-in LFS server is enabled by default (LFS_ENABLED,
+    LFS_MAX_FILE_SIZE in .env); objects persist on the forge-data volume.
+    For external object storage use [lfs] STORAGE_TYPE=minio against
+    Garage or SeaweedFS (S3-compatible; avoid unmaintained MinIO)
   Secrets: OpenBao or Infisical
   Auth: Authentik or Keycloak (OIDC into Forge)
   Observability: Prometheus + Grafana (Forge metrics already optional)

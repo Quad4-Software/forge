@@ -53,6 +53,9 @@ x-forge-env: &forge-env
   FORGEJO__ui__DEFAULT_THEME: quad4-dark
   FORGEJO__rns__ENABLED: ${RNS_ENABLED:-true}
   FORGEJO__rns__EMAIL_OPTIONAL: ${RNS_EMAIL_OPTIONAL:-true}
+  # Built-in LFS server, objects persist in forge-data volume at data/lfs.
+  FORGEJO__server__LFS_START_SERVER: ${LFS_ENABLED:-true}
+  FORGEJO__server__LFS_MAX_FILE_SIZE: ${LFS_MAX_FILE_SIZE:-0}
 
 services:
   # One-shot internal PKI: issues a CA plus server certs for db and valkey.
