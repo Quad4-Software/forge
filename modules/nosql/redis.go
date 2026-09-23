@@ -28,8 +28,8 @@ import (
 // We need to convert this old style to the new style
 func ToRedisURI(connection string) *url.URL {
 	uri, err := url.Parse(connection)
-	if err == nil && strings.HasPrefix(uri.Scheme, "redis") {
-		// OK we're going to assume that this is a reasonable redis URI
+	if err == nil && (strings.HasPrefix(uri.Scheme, "redis") || strings.HasPrefix(uri.Scheme, "surreal")) {
+		// OK we're going to assume that this is a reasonable redis or SurrealDB URI
 		return uri
 	}
 

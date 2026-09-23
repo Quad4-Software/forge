@@ -86,14 +86,29 @@ func (m *Manager) getRedisClient(connection string) RedisClient {
 		name: []string{connection, uri.String()},
 	}
 
-	opts := getRedisOptions(uri)
-	tlsConfig := getRedisTLSOptions(uri)
-
 	clientName := uri.Query().Get("clientname")
 
 	if len(clientName) > 0 {
 		client.name = append(client.name, clientName)
 	}
+
+	switch uri.Scheme {
+	case "surreal", "surreals", "surrealdb", "surrealdbs":
+		s, err := newSurrealClient(m.ctx, uri)
+		if err != nil {
+			log.Error("Failed to connect to SurrealDB %q: %v", uri.Redacted(), err)
+			return nil
+		}
+		client.RedisClient = s
+		for _, name := range client.name {
+			m.RedisConnections[name] = client
+		}
+		client.count++
+		return client
+	}
+
+	opts := getRedisOptions(uri)
+	tlsConfig := getRedisTLSOptions(uri)
 
 	switch uri.Scheme {
 	case "redis+sentinels":
