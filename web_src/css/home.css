@@ -32,9 +32,9 @@
 }
 
 .home .home-trending-more {
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 0.9em;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 @media (max-width: 767.98px) {
