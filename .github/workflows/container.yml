@@ -70,6 +70,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Normalize image name
+        # OCI references must be lowercase; github.repository keeps the
+        # owner casing, which strict parsers like trivy reject.
+        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
 
