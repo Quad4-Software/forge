@@ -2,6 +2,41 @@
   max-width: 220px;
 }
 
+.home .home-logo {
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 8px;
+}
+
+.home .home-logo .logo {
+  width: 100%;
+  height: auto;
+}
+
+.home .home-trending {
+  padding-bottom: 32px;
+}
+
+.home .home-trending-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.home .home-trending-title .svg {
+  color: var(--color-primary);
+}
+
+.home .home-trending-more {
+  margin-left: auto;
+  font-size: 0.9em;
+  font-weight: normal;
+}
+
 @media (max-width: 767.98px) {
   .home .hero h1 {
     font-size: 3.5em;

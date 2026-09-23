@@ -28,6 +28,8 @@ import (
 const (
 	// tplHome home page template
 	tplHome base.TplName = "home"
+	// homeTrendingReposCount is the number of trending repositories shown to anonymous visitors
+	homeTrendingReposCount = 10
 )
 
 // Home render home page
@@ -84,6 +86,25 @@ func Home(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	ctx.Data["OpenGraphDescription"] = setting.UI.Meta.Description
+
+	repos, _, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: homeTrendingReposCount,
+		},
+		Actor:              ctx.Doer,
+		AllPublic:          true,
+		OrderBy:            db.SearchOrderByStarsReverse,
+		IncludeDescription: setting.UI.SearchRepoDescription,
+	})
+	if err != nil {
+		ctx.ServerError("SearchRepository", err)
+		return
+	}
+	ctx.Data["Repos"] = repos
+	ctx.Data["SortType"] = "moststars"
+	ctx.Data["DisableStars"] = setting.Repository.DisableStars
+	ctx.Data["DisableForks"] = setting.Repository.DisableForks
 
 	ctx.HTML(http.StatusOK, tplHome)
 }
