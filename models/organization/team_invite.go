@@ -107,64 +107,6 @@ type TeamInvite struct {
 	ExpiryUnix  optional.Option[timeutil.TimeStamp] `xorm:"expiry_unix"`
 }
 
-// CreateTeamInviteByEmail creates a TeamInvite for someone who does not have an account yet.
-func CreateTeamInviteByEmail(ctx context.Context, doer *user_model.User, team *Team, email string) (*TeamInvite, error) {
-	existingInvite := TeamInvite{
-		TeamID: team.ID,
-		Email:  email,
-	}
-	has, err := db.GetEngine(ctx).Get(&existingInvite)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		if existingInvite.IsExpired() {
-			_, err := db.GetEngine(ctx).Delete(&existingInvite)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, ErrTeamInviteAlreadyExist{
-				TeamID: team.ID,
-				Email:  email,
-			}
-		}
-	}
-
-	// check if the user is already a team member by email
-	exist, err := db.GetEngine(ctx).
-		Where(builder.Eq{
-			"team_user.org_id":  team.OrgID,
-			"team_user.team_id": team.ID,
-			"`user`.email":      email,
-		}).
-		Join("INNER", "`user`", "`user`.id = team_user.uid").
-		Table("team_user").
-		Exist()
-	if err != nil {
-		return nil, err
-	}
-
-	if exist {
-		return nil, ErrInvitedUserAlreadyAdded{
-			Email: email,
-		}
-	}
-
-	token := util.CryptoRandomString(util.RandomStringMedium)
-
-	invite := &TeamInvite{
-		Token:      token,
-		InviterID:  doer.ID,
-		OrgID:      team.OrgID,
-		TeamID:     team.ID,
-		Email:      email,
-		ExpiryUnix: getInviteExpiry(),
-	}
-
-	return invite, db.Insert(ctx, invite)
-}
-
 // rnsInvitePrefix marks a team invite addressed to a Reticulum identity
 // rather than an email address. It is stored in the email column so the
 // (team, email) uniqueness constraint keeps working for both kinds.

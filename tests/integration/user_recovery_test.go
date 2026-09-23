@@ -33,7 +33,7 @@ func TestForgotPassword(t *testing.T) {
 		})()
 
 		req := NewRequestWithValues(t, "POST", "/user/forgot_password", map[string]string{
-			"email": email.Email,
+			"account": user.Name,
 		})
 		MakeRequest(t, req, http.StatusOK)
 

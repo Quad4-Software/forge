@@ -42,7 +42,6 @@ import (
 	feed_service "forgejo.org/services/feed"
 	indexer_service "forgejo.org/services/indexer"
 	"forgejo.org/services/mailer"
-	mailer_incoming "forgejo.org/services/mailer/incoming"
 	markup_service "forgejo.org/services/markup"
 	migrations_allowlist "forgejo.org/services/migrations/allowlist"
 	mirror_service "forgejo.org/services/mirror"
@@ -153,7 +152,6 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(task.Init)
 	mustInit(migrations_allowlist.Init)
 	eventsource.GetManager().Init()
-	mustInitCtx(ctx, mailer_incoming.Init)
 
 	mustInitCtx(ctx, syncAppConfForGit)
 

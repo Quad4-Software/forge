@@ -1,10 +1,9 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package mailer
 
 import (
-	"bytes"
 	"context"
 	"slices"
 
@@ -12,22 +11,14 @@ import (
 	repo_model "forgejo.org/models/repo"
 	"forgejo.org/models/unit"
 	user_model "forgejo.org/models/user"
-	"forgejo.org/modules/base"
 	"forgejo.org/modules/log"
-	"forgejo.org/modules/markup"
-	"forgejo.org/modules/markup/markdown"
-	"forgejo.org/modules/setting"
 	"forgejo.org/modules/translation"
+	"forgejo.org/services/lxmfnotify"
 )
 
-const (
-	tplNewReleaseMail base.TplName = "release"
-)
-
-// MailNewRelease send new release notify to all repo watchers.
+// MailNewRelease send new release notifications to all repo watchers via LXMF.
 func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
-	if setting.MailService == nil {
-		// No mail service configured
+	if !lxmfnotify.Available() {
 		return
 	}
 
@@ -43,65 +34,15 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	// Users are not eligible to receive this mail if they are not active or
+	// Users are not eligible to receive this notice if they are not active or
 	// they don't have permissions to read releases.
 	recipients = slices.DeleteFunc(recipients, func(u *user_model.User) bool {
-		return !u.IsActive || !access_model.CheckRepoUnitUser(ctx, rel.Repo, u, unit.TypeReleases)
+		return !u.IsActive || u.ID == rel.PublisherID || !access_model.CheckRepoUnitUser(ctx, rel.Repo, u, unit.TypeReleases)
 	})
 
-	langMap := make(map[string][]*user_model.User)
-	for _, user := range recipients {
-		if user.ID != rel.PublisherID {
-			langMap[user.Language] = append(langMap[user.Language], user)
-		}
+	for _, u := range recipients {
+		locale := translation.NewLocale(u.Language)
+		subject := locale.TrString("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
+		deliverNotice(ctx, u, subject, subject+"\n\n"+rel.HTMLURL())
 	}
-
-	for lang, tos := range langMap {
-		mailNewRelease(ctx, lang, tos, rel)
-	}
-}
-
-func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, rel *repo_model.Release) {
-	locale := translation.NewLocale(lang)
-
-	var err error
-	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
-		Ctx: ctx,
-		Links: markup.Links{
-			Base: rel.Repo.HTMLURL(),
-		},
-		Metas: rel.Repo.ComposeMetas(ctx),
-	}, rel.Note)
-	if err != nil {
-		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)
-		return
-	}
-
-	subject := locale.TrString("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
-	mailMeta := map[string]any{
-		"locale":   locale,
-		"Release":  rel,
-		"Subject":  subject,
-		"Language": locale.Language(),
-		"Link":     rel.HTMLURL(),
-	}
-
-	var mailBody bytes.Buffer
-
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
-		return
-	}
-
-	msgs := make([]*Message, 0, len(tos))
-	publisherName := fromDisplayName(rel.Publisher)
-	msgID := createMessageIDForRelease(rel)
-	for _, to := range tos {
-		msg := NewMessageFrom(to.EmailTo(), publisherName, setting.MailService.FromEmail, subject, mailBody.String())
-		msg.Info = subject
-		msg.SetHeader("Message-ID", msgID)
-		msgs = append(msgs, msg)
-	}
-
-	SendAsync(msgs...)
 }

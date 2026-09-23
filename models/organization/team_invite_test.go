@@ -26,11 +26,14 @@ func TestTeamInvite(t *testing.T) {
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 
-	t.Run("MailExistsInTeam", func(t *testing.T) {
+	t.Run("IdentityExistsInTeam", func(t *testing.T) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-		// user 2 already added to team 2, should result in error
-		_, err := organization.CreateTeamInviteByEmail(db.DefaultContext, user2, team, user2.Email)
+		// an identity owned by user 2, who is already in team 2, must error
+		const memberHash = "99b75fdb14a0666c1cc5b2fa48502f5b"
+		_, err := user_model.AddRNSKey(db.DefaultContext, user2, "member", memberHash, true)
+		require.NoError(t, err)
+		_, err = organization.CreateTeamInviteByRNSIdentity(db.DefaultContext, user2, team, memberHash)
 		require.Error(t, err)
 	})
 
@@ -61,8 +64,12 @@ func TestTeamInvite(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, invited)
 
-		// Shouldn't allow duplicate invite by email
-		_, err = organization.CreateTeamInviteByEmail(db.DefaultContext, user1, team, user5.Email)
+		// Shouldn't allow duplicate invite through the identity of the
+		// already invited user
+		const user5Hash = "3016048118ab6ff9dc6e5a4608317923"
+		_, err = user_model.AddRNSKey(db.DefaultContext, user5, "main", user5Hash, true)
+		require.NoError(t, err)
+		_, err = organization.CreateTeamInviteByRNSIdentity(db.DefaultContext, user1, team, user5Hash)
 		require.Error(t, err)
 		// Shouldn't allow duplicate invite by user
 		_, err = organization.CreateTeamInviteForUser(db.DefaultContext, user1, user5, team)
@@ -85,10 +92,10 @@ func TestTeamInvite(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("CreateByEmailAndRemove", func(t *testing.T) {
+	t.Run("CreateByIdentityAndRemove", func(t *testing.T) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		invite, err := organization.CreateTeamInviteByEmail(db.DefaultContext, user1, team, "org3@example.com")
+		invite, err := organization.CreateTeamInviteByRNSIdentity(db.DefaultContext, user1, team, "5f4dcf48d69bd8de494f0b04dd1d55ec")
 		assert.NotNil(t, invite)
 		require.NoError(t, err)
 		hasExpiration, expirationDate := invite.ExpiryUnix.Get()
@@ -97,7 +104,7 @@ func TestTeamInvite(t *testing.T) {
 		assert.Less(t, expirationDate, timeutil.TimeStampNow().AddDuration(15*24*time.Hour))
 
 		// Shouldn't allow duplicate invite
-		_, err = organization.CreateTeamInviteByEmail(db.DefaultContext, user1, team, "org3@example.com")
+		_, err = organization.CreateTeamInviteByRNSIdentity(db.DefaultContext, user1, team, "5f4dcf48d69bd8de494f0b04dd1d55ec")
 		require.Error(t, err)
 
 		// should remove invite
@@ -118,25 +125,26 @@ func TestTeamInvite(t *testing.T) {
 		assert.NotNil(t, invite)
 		assert.False(t, invite.ExpiryUnix.Has())
 
-		// Shouldn't allow duplicate invite by email
-		_, err = organization.CreateTeamInviteByEmail(db.DefaultContext, user1, team, user5.Email)
+		// Shouldn't allow duplicate invite through the identity of the
+		// already invited user
+		_, err = organization.CreateTeamInviteByRNSIdentity(db.DefaultContext, user1, team, "3016048118ab6ff9dc6e5a4608317923")
 		require.Error(t, err)
 		// Shouldn't allow duplicate invite by user
 		_, err = organization.CreateTeamInviteForUser(db.DefaultContext, user1, user5, team)
 		require.Error(t, err)
 	})
 
-	t.Run("CreateByEmailWithoutExpiration", func(t *testing.T) {
+	t.Run("CreateByIdentityWithoutExpiration", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.TeamInvitationExpiryDays, 0)()
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		invite, err := organization.CreateTeamInviteByEmail(db.DefaultContext, user1, team, "org3@example.com")
+		invite, err := organization.CreateTeamInviteByRNSIdentity(db.DefaultContext, user1, team, "5f4dcf48d69bd8de494f0b04dd1d55ec")
 		assert.NotNil(t, invite)
 		require.NoError(t, err)
 		assert.False(t, invite.ExpiryUnix.Has())
 
 		// Shouldn't allow duplicate invite
-		_, err = organization.CreateTeamInviteByEmail(db.DefaultContext, user1, team, "org3@example.com")
+		_, err = organization.CreateTeamInviteByRNSIdentity(db.DefaultContext, user1, team, "5f4dcf48d69bd8de494f0b04dd1d55ec")
 		require.Error(t, err)
 	})
 
@@ -170,10 +178,10 @@ func TestTeamInvite(t *testing.T) {
 		assert.False(t, oldInviteExists)
 	})
 
-	t.Run("RecreateByEmailAfterExpiration", func(t *testing.T) {
+	t.Run("RecreateByIdentityAfterExpiration", func(t *testing.T) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		invite, err := organization.CreateTeamInviteByEmail(db.DefaultContext, user1, team, "hello@example.com")
+		invite, err := organization.CreateTeamInviteByRNSIdentity(db.DefaultContext, user1, team, "1753bdb368271a785887ddbfb926164f")
 		assert.NotNil(t, invite)
 		require.NoError(t, err)
 		// manually make the invite expire
@@ -183,9 +191,9 @@ func TestTeamInvite(t *testing.T) {
 		require.NoError(t, err)
 
 		// Creating the invite again succeeds
-		newInvite, err := organization.CreateTeamInviteByEmail(db.DefaultContext, user1, team, "hello@example.com")
+		newInvite, err := organization.CreateTeamInviteByRNSIdentity(db.DefaultContext, user1, team, "1753bdb368271a785887ddbfb926164f")
 		require.NoError(t, err)
-		assert.Equal(t, "hello@example.com", newInvite.Email)
+		assert.Equal(t, "rns:1753bdb368271a785887ddbfb926164f", newInvite.Email)
 		assert.False(t, newInvite.IsExpired())
 
 		// The previous invite is deleted

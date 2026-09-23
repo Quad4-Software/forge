@@ -9,15 +9,15 @@
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					{{if .IsResetSent}}
-						<p>{{ctx.Locale.Tr "auth.reset_password_mail_sent_prompt" .Email .ResetPwdCodeLives}}</p>
+						<p>{{ctx.Locale.Tr "auth.reset_password_sent_prompt" .ResetPwdCodeLives}}</p>
 					{{else if .IsResetRequest}}
-						<div class="required field {{if .Err_Email}}error{{end}}">
-							<label for="email">{{ctx.Locale.Tr "email"}}</label>
-							<input id="email" name="email" type="email"  value="{{.Email}}" autofocus required>
+						<div class="required field {{if .Err_Account}}error{{end}}">
+							<label for="account">{{ctx.Locale.Tr "auth.username_or_identity"}}</label>
+							<input id="account" name="account" type="text" value="{{.Account}}" autofocus required autocorrect="off" autocapitalize="none">
 						</div>
 						<div class="divider"></div>
 						<div class="inline field">
-							<button class="ui primary button">{{ctx.Locale.Tr "auth.send_reset_mail"}}</button>
+							<button class="ui primary button">{{ctx.Locale.Tr "auth.send_reset_link"}}</button>
 						</div>
 					{{else if .IsResetDisable}}
 						<p class="center">

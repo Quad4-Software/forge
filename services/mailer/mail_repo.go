@@ -4,85 +4,46 @@
 package mailer
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 
 	"forgejo.org/models/organization"
 	repo_model "forgejo.org/models/repo"
 	user_model "forgejo.org/models/user"
-	"forgejo.org/modules/setting"
 	"forgejo.org/modules/translation"
+	"forgejo.org/services/lxmfnotify"
 )
 
-// SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
+// SendRepoTransferNotifyMail sends a notification when a pending repository
+// transfer was created, delivered via LXMF.
 func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
-	if setting.MailService == nil {
-		// No mail service configured
+	if !lxmfnotify.Available() {
 		return nil
 	}
 
+	tos := []*user_model.User{newOwner}
 	if newOwner.IsOrganization() {
-		users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
+		userMap, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
 		if err != nil {
 			return err
 		}
-
-		langMap := make(map[string][]*user_model.User)
-		for _, user := range users {
-			if !user.IsActive {
-				// don't send emails to inactive users
-				continue
-			}
-			langMap[user.Language] = append(langMap[user.Language], user)
+		tos = make([]*user_model.User, 0, len(userMap))
+		for _, u := range userMap {
+			tos = append(tos, u)
 		}
+	}
 
-		for lang, tos := range langMap {
-			if err := sendRepoTransferNotifyMailPerLang(lang, newOwner, doer, tos, repo); err != nil {
-				return err
-			}
+	for _, to := range tos {
+		if !to.IsActive {
+			continue
 		}
-
-		return nil
-	}
-
-	return sendRepoTransferNotifyMailPerLang(newOwner.Language, newOwner, doer, []*user_model.User{newOwner}, repo)
-}
-
-// sendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created for each language
-func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.User, emailTos []*user_model.User, repo *repo_model.Repository) error {
-	var (
-		locale  = translation.NewLocale(lang)
-		content bytes.Buffer
-	)
-
-	destination := locale.TrString("mail.repo.transfer.to_you")
-	subject := locale.TrString("mail.repo.transfer.subject_to_you", doer.DisplayName(), repo.FullName())
-	if newOwner.IsOrganization() {
-		destination = newOwner.DisplayName()
-		subject = locale.TrString("mail.repo.transfer.subject_to", doer.DisplayName(), repo.FullName(), destination)
-	}
-
-	data := map[string]any{
-		"locale":      locale,
-		"Doer":        doer,
-		"User":        repo.Owner,
-		"Repo":        repo.FullName(),
-		"Link":        repo.HTMLURL(),
-		"Subject":     subject,
-		"Language":    locale.Language(),
-		"Destination": destination,
-	}
-
-	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
-		return err
-	}
-
-	for _, to := range emailTos {
-		msg := NewMessageFrom(to.EmailTo(), fromDisplayName(doer), setting.MailService.FromEmail, subject, content.String())
-		msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
-
-		SendAsync(msg)
+		locale := translation.NewLocale(to.Language)
+		destination := locale.TrString("mail.repo.transfer.to_you")
+		subject := locale.TrString("mail.repo.transfer.subject_to_you", doer.DisplayName(), repo.FullName())
+		if newOwner.IsOrganization() {
+			destination = newOwner.DisplayName()
+			subject = locale.TrString("mail.repo.transfer.subject_to", doer.DisplayName(), repo.FullName(), destination)
+		}
+		deliverNotice(ctx, to, subject, subject+"\n\n"+repo.HTMLURL())
 	}
 
 	return nil

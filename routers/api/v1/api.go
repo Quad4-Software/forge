@@ -703,11 +703,6 @@ func Routes() *web.Route {
 				m.Get("", user.GetUserSettings)
 				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
 			}, reqToken())
-			m.Combo("/emails").
-				Get(user.ListEmails).
-				Post(bind(api.CreateEmailOption{}), user.AddEmail).
-				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
-
 			addActionsRoutes(
 				m,
 				func(ctx *context.APIContext) {},
@@ -1388,9 +1383,6 @@ func Routes() *web.Route {
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 					m.Post("/rename", bind(api.RenameUserOption{}), admin.RenameUser)
-					m.Combo("/emails").
-						Get(admin.ListUserEmails).
-						Delete(bind(api.DeleteEmailOption{}), admin.DeleteUserEmails)
 					m.Group("/tokens", func() {
 						m.Combo("").Get(admin.ListUserAccessTokens).
 							Post(bind(api.CreateAccessTokenOption{}), admin.CreateUserAccessToken)
@@ -1403,10 +1395,6 @@ func Routes() *web.Route {
 						})
 					}
 				}, context.UserAssignmentAPI())
-			})
-			m.Group("/emails", func() {
-				m.Get("", admin.GetAllEmails)
-				m.Get("/search", admin.SearchEmail)
 			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)

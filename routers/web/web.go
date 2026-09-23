@@ -16,7 +16,6 @@ import (
 	quota_model "forgejo.org/models/quota"
 	repo_model "forgejo.org/models/repo"
 	"forgejo.org/models/unit"
-	"forgejo.org/modules/altcha"
 	"forgejo.org/modules/avatar"
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/metrics"
@@ -383,9 +382,6 @@ func Routes() *web.Route {
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
 		routes.Methods("GET,HEAD", "/captcha/*", gzipMid, captcha.Server(captcha.StdWidth, captcha.StdHeight).ServeHTTP)
-		if setting.Service.CaptchaType == setting.Altcha && setting.Service.AltchaMode != setting.AltchaModeRemote {
-			routes.Methods("GET,HEAD", "/altcha/challenge", gzipMid, altcha.CreateChallengeJSON)
-		}
 	}
 
 	if setting.Metrics.Enabled {
@@ -748,8 +744,7 @@ func registerRoutes(m *web.Route) {
 		m.Post("/avatar/delete", user_setting.DeleteAvatar)
 		m.Group("/account", func() {
 			m.Combo("").Get(user_setting.Account).Post(web.Bind(forms.ChangePasswordForm{}), user_setting.AccountPost)
-			m.Post("/email", web.Bind(forms.AddEmailForm{}), user_setting.EmailPost)
-			m.Post("/email/delete", user_setting.DeleteEmail)
+			m.Post("/notifications", user_setting.EmailNotificationPost)
 			m.Post("/delete", user_setting.DeleteAccount)
 		})
 		m.Group("/appearance", func() {
@@ -879,7 +874,6 @@ func registerRoutes(m *web.Route) {
 	m.Group("/user", func() {
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
-		m.Any("/activate_email", auth.ActivateEmail)
 		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
 		m.Get("/recover_account", auth.ResetPasswd)
 		m.Post("/recover_account", auth.ResetPasswdPost)
@@ -913,7 +907,6 @@ func registerRoutes(m *web.Route) {
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
-			m.Post("/test_mail", admin.SendTestMail)
 			m.Post("/test_cache", admin.TestCache)
 			m.Get("/settings", admin.ConfigSettings)
 		})
@@ -940,12 +933,6 @@ func registerRoutes(m *web.Route) {
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
-		})
-
-		m.Group("/emails", func() {
-			m.Get("", admin.Emails)
-			m.Post("/activate", admin.ActivateEmail)
-			m.Post("/delete", admin.DeleteEmail)
 		})
 
 		m.Group("/orgs", func() {
@@ -1199,6 +1186,9 @@ func registerRoutes(m *web.Route) {
 		m.Post("/create", web.Bind(forms.CreateRepoForm{}), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
 		m.Post("/migrate", web.Bind(forms.MigrateRepoForm{}), repo.MigratePost)
+		m.Get("/migrate/mass", repo.MassMigrate)
+		m.Post("/migrate/mass", web.Bind(forms.MassMigrateRepoForm{}), repo.MassMigratePost)
+		m.Post("/migrate/mass/confirm", repo.MassMigrateConfirmPost)
 		if !setting.Repository.DisableForks {
 			m.Get("/fork/{repoid}", context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader, repo.ForkByID)
 		}

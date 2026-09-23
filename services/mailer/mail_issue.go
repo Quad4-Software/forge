@@ -15,8 +15,6 @@ import (
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/container"
 	"forgejo.org/modules/log"
-	"forgejo.org/modules/setting"
-	"forgejo.org/services/lxmfnotify"
 )
 
 func fallbackMailSubject(issue *issues_model.Issue) string {
@@ -47,11 +45,6 @@ type mailCommentContext struct {
 	ForceDoerNotification bool
 	ActionAdditionalData  ActionAdditionalData
 }
-
-const (
-	// MailBatchSize set the batch size used in mailIssueCommentBatch
-	MailBatchSize = 100
-)
 
 // mailIssueCommentToParticipants can be used for both new issue creation and comment.
 // This function sends two list of emails:
@@ -142,7 +135,6 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		checkUnit = unit.TypePullRequests
 	}
 
-	langMap := make(map[string][]*user_model.User)
 	lxmfUsers := make([]*user_model.User, 0, len(users))
 	for _, user := range users {
 		if !user.IsActive {
@@ -150,7 +142,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 			continue
 		}
 		// At this point we exclude:
-		// user that don't have all mails enabled or users only get mail on mention and this is one ...
+		// user that don't have all notifications enabled or users only get notified on mention and this is one ...
 		if user.EmailNotificationsPreference != user_model.EmailNotificationsEnabled &&
 			user.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn && (!fromMention || user.EmailNotificationsPreference != user_model.EmailNotificationsOnMention) {
 			continue
@@ -166,30 +158,11 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 			continue
 		}
 
-		if lxmfnotify.HasPlaceholderEmail(user) {
-			lxmfUsers = append(lxmfUsers, user)
-			continue
-		}
-
-		langMap[user.Language] = append(langMap[user.Language], user)
+		lxmfUsers = append(lxmfUsers, user)
 	}
 
-	if len(lxmfUsers) > 0 && lxmfnotify.Available() {
+	if len(lxmfUsers) > 0 {
 		sendIssueActivityViaLXMF(ctx, lxmfUsers, fromMention)
-	}
-
-	for lang, receivers := range langMap {
-		// because we know that the len(receivers) > 0 and we don't care about the order particularly
-		// working backwards from the last (possibly) incomplete batch. If len(receivers) can be 0 this
-		// starting condition will need to be changed slightly
-		for i := ((len(receivers) - 1) / MailBatchSize) * MailBatchSize; i >= 0; i -= MailBatchSize {
-			msgs, err := composeIssueCommentMessages(ctx, lang, receivers[i:], fromMention, "issue comments")
-			if err != nil {
-				return err
-			}
-			SendAsync(msgs...)
-			receivers = receivers[:i]
-		}
 	}
 
 	return nil
@@ -198,11 +171,6 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User, additionalData ActionAdditionalData) error {
-	if setting.MailService == nil && !lxmfnotify.Available() {
-		// No mail service configured
-		return nil
-	}
-
 	content := issue.Content
 	if opType == activities_model.ActionCloseIssue || opType == activities_model.ActionClosePullRequest ||
 		opType == activities_model.ActionReopenIssue || opType == activities_model.ActionReopenPullRequest ||
@@ -227,29 +195,27 @@ func MailParticipants(ctx context.Context, issue *issues_model.Issue, doer *user
 	return nil
 }
 
-// sendIssueActivityViaLXMF delivers a compact activity notice to users whose
-// primary contact is a Reticulum identity instead of an email address.
+// sendIssueActivityViaLXMF delivers a compact activity notice to the
+// verified Reticulum identities of the users.
 func sendIssueActivityViaLXMF(ctx *mailCommentContext, users []*user_model.User, fromMention bool) {
 	link := ctx.Issue.HTMLURL()
 	if ctx.Comment != nil {
 		link += "#" + ctx.Comment.HashTag()
 	}
 
-	ids := make([]int64, 0, len(users))
-	for _, u := range users {
-		ids = append(ids, u.ID)
-	}
-	hashMap, err := user_model.GetVerifiedRNSIdentityHashesByUserIDs(ctx, ids)
-	if err != nil {
-		log.Error("GetVerifiedRNSIdentityHashesByUserIDs: %v", err)
-		return
-	}
-
 	subject := fallbackMailSubject(ctx.Issue)
 	if fromMention {
 		subject = "Re: " + subject
 	}
+	msgs := make([]*Message, 0, len(users))
 	for _, u := range users {
-		lxmfnotify.SendIssueActivity(u, hashMap[u.ID], subject, link)
+		body := subject + "\n\n" + link
+		if ctx.Content != "" {
+			body = ctx.Content + "\n\n" + link
+		}
+		msg := newMessage(ctx, u, subject, body, true)
+		msg.Info = fmt.Sprintf("UID: %d, issue #%d activity", u.ID, ctx.Issue.ID)
+		msgs = append(msgs, msg)
 	}
+	SendAsync(msgs...)
 }

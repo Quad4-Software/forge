@@ -28,9 +28,6 @@
 				<!-- LDAP and DLDAP -->
 				{{template "admin/auth/source/ldap" .}}
 
-				<!-- SMTP -->
-				{{template "admin/auth/source/smtp" .}}
-
 				<!-- PAM -->
 				<div class="pam required field {{if not (eq .type 4)}}tw-hidden{{end}}">
 					<label for="pam_service_name">{{ctx.Locale.Tr "admin.auths.pam_service_name"}}</label>
@@ -78,9 +75,6 @@
 			{{ctx.Locale.Tr "admin.auths.tips"}}
 		</h4>
 		<div class="ui attached segment">
-			<h5>{{ctx.Locale.Tr "admin.auths.tips.gmail_settings"}}</h5>
-			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
-
 			<h5 class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general"}}:</h5>
 			<p class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
 

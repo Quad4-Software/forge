@@ -209,54 +209,6 @@
 		</div>
 
 		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "admin.config.mailer.header"}}
-		</h4>
-		<div class="ui attached table segment">
-			<dl class="admin-dl-horizontal">
-				<dt>{{ctx.Locale.Tr "admin.config.mailer.enabled"}}</dt>
-				<dd>{{if .MailerEnabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				{{if .MailerEnabled}}
-					<dt>{{ctx.Locale.Tr "admin.config.mailer.name"}}</dt>
-					<dd>{{.Mailer.Name}}</dd>
-					{{if eq .Mailer.Protocol "sendmail"}}
-						<dt>{{ctx.Locale.Tr "admin.config.mailer.sendmail.use"}}</dt>
-						<dd>{{svg "octicon-check"}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.mailer.sendmail.path"}}</dt>
-						<dd>{{.Mailer.SendmailPath}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.mailer.sendmail.args"}}</dt>
-						<dd>{{.Mailer.SendmailArgs}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.mailer.sendmail.timeout"}}</dt>
-						<dd>{{.Mailer.SendmailTimeout}} {{ctx.Locale.Tr "tool.raw_seconds"}}</dd>
-					{{else if eq .Mailer.Protocol "dummy"}}
-						<dt>{{ctx.Locale.Tr "admin.config.mailer.use_dummy"}}</dt>
-						<dd>{{svg "octicon-check"}}</dd>
-					{{else}}{{/* SMTP family */}}
-						<dt>{{ctx.Locale.Tr "admin.config.mailer.protocol"}}</dt>
-						<dd>{{.Mailer.Protocol}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.mailer.enable_helo"}}</dt>
-						<dd>{{if .Mailer.EnableHelo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.mailer.smtp.addr"}}</dt>
-						<dd>{{.Mailer.SMTPAddr}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.mailer.smtp.port"}}</dt>
-						<dd>{{.Mailer.SMTPPort}}</dd>
-					{{end}}
-					<dt>{{ctx.Locale.Tr "admin.config.mailer.user"}}</dt>
-					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
-					<div class="divider"></div>
-					<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
-					<dd class="tw-py-0">
-						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
-							<div class="ui tiny input">
-								<input type="email" name="email" placeholder="{{ctx.Locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
-							</div>
-							<button class="ui tiny primary button">{{ctx.Locale.Tr "admin.config.send_test_mail_submit"}}</button>
-						</form>
-					</dd>
-				{{end}}
-			</dl>
-		</div>
-
-		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.moderation_config"}}
 		</h4>
 		<div class="ui attached table segment">

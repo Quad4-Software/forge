@@ -21,7 +21,6 @@ import (
 	"forgejo.org/modules/setting/config"
 	"forgejo.org/modules/util"
 	"forgejo.org/services/context"
-	"forgejo.org/services/mailer"
 
 	"code.forgejo.org/go-chi/session"
 )
@@ -30,19 +29,6 @@ const (
 	tplConfig         base.TplName = "admin/config"
 	tplConfigSettings base.TplName = "admin/config_settings"
 )
-
-// SendTestMail send test mail to confirm mail service is OK
-func SendTestMail(ctx *context.Context) {
-	email := ctx.FormString("email")
-	// Send a test email to the user's email address and redirect back to Config
-	if err := mailer.SendTestMail(email); err != nil {
-		ctx.Flash.Error(ctx.Tr("admin.config.test_mail_failed", email, err))
-	} else {
-		ctx.Flash.Info(ctx.Tr("admin.config.test_mail_sent", email))
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/admin/config")
-}
 
 // TestCache test the cache settings
 func TestCache(ctx *context.Context) {
@@ -146,12 +132,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["Moderation"] = setting.Moderation
 	ctx.Data["Federation"] = setting.Federation
 	ctx.Data["FederationMaxSize"] = setting.Federation.MaxSize / 1024 / 1024 // in MiB
-
-	ctx.Data["MailerEnabled"] = false
-	if setting.MailService != nil {
-		ctx.Data["MailerEnabled"] = true
-		ctx.Data["Mailer"] = setting.MailService
-	}
 
 	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
 	ctx.Data["CacheInterval"] = setting.CacheService.Interval

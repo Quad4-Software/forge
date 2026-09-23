@@ -218,7 +218,16 @@ func (u *User) SetLastLogin() {
 
 // GetPlaceholderEmail returns an noreply email
 func (u *User) GetPlaceholderEmail() string {
-	return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
+	return PlaceholderEmail(u.LowerName)
+}
+
+// PlaceholderEmail returns a generated noreply placeholder email for a name.
+func PlaceholderEmail(name string) string {
+	domain := setting.Service.NoReplyAddress
+	if domain == "" {
+		domain = "localhost"
+	}
+	return fmt.Sprintf("%s@%s", strings.ToLower(name), domain)
 }
 
 // GetEmail returns an noreply email, if the user has set to keep his

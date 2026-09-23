@@ -200,7 +200,7 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	}
 
 	if opts.Password.Has() {
-		return mailer.SendPasswordChange(u)
+		return mailer.SendPasswordChange(ctx, u)
 	}
 
 	return nil

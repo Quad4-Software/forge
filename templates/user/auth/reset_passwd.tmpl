@@ -9,10 +9,10 @@
 				</h2>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
-					{{if .user_email}}
+					{{if .user_name}}
 						<div class="inline field">
-							<label for="user_name">{{ctx.Locale.Tr "email"}}</label>
-							<input id="user_name" type="text" value="{{.user_email}}" disabled autocorrect="off" autocapitalize="none">
+							<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
+							<input id="user_name" type="text" value="{{.user_name}}" disabled autocorrect="off" autocapitalize="none">
 						</div>
 					{{end}}
 					{{if .IsResetForm}}

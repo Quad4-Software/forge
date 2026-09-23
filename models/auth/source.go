@@ -6,6 +6,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -379,3 +380,6 @@ func IsErrSourceInUse(err error) bool {
 func (err ErrSourceInUse) Error() string {
 	return fmt.Sprintf("login source is still used by some users [id: %d]", err.ID)
 }
+
+// ErrUnsupportedLoginType indicates the login source does not support password authentication.
+var ErrUnsupportedLoginType = errors.New("Login source does not support password authentication")

@@ -18,7 +18,6 @@ import (
 	"forgejo.org/modules/web"
 	auth_method "forgejo.org/services/auth/method"
 	"forgejo.org/services/auth/source/oauth2"
-	"forgejo.org/services/auth/source/smtp"
 	"forgejo.org/services/context"
 	"forgejo.org/services/externalaccount"
 	"forgejo.org/services/forms"
@@ -91,7 +90,7 @@ func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl 
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if errors.Is(err, util.ErrInvalidArgument) ||
-		errors.Is(err, oauth2.ErrAuthSourceNotActivated) || errors.Is(err, smtp.ErrUnsupportedLoginType) {
+		errors.Is(err, oauth2.ErrAuthSourceNotActivated) || errors.Is(err, auth.ErrUnsupportedLoginType) {
 		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if user_model.IsErrUserProhibitLogin(err) {
 		log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
@@ -163,7 +162,6 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 	}
 
 	if err := updateSession(ctx, nil, map[string]any{
-		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": remember,
 		"linkAccount":   true,
@@ -229,14 +227,6 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	if emailValid, ok := form.IsEmailDomainAllowed(); !emailValid {
-		ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSignUp, form)
-		return
-	} else if !ok {
-		ctx.RenderWithErr(ctx.Tr("auth.email_domain_blacklisted"), tplLinkAccount, &form)
-		return
-	}
-
 	if setting.Service.AllowOnlyExternalRegistration || !setting.Service.RequireExternalRegistrationPassword {
 		// In user_model.User an empty password is classed as not set, so we set form.Password to empty.
 		// Eventually the database should be changed to indicate "Second Factor"-enabled accounts
@@ -265,7 +255,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 
 	u := &user_model.User{
 		Name:        form.UserName,
-		Email:       form.Email,
+		Email:       user_model.PlaceholderEmail(form.UserName),
 		Passwd:      form.Password,
 		LoginType:   auth.OAuth2,
 		LoginSource: authSource.ID,

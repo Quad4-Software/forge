@@ -118,7 +118,7 @@ func CollaborationPost(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableNotifyMail {
-		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
+		mailer.SendCollaboratorMail(ctx, u, ctx.Doer, ctx.Repo.Repository)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))

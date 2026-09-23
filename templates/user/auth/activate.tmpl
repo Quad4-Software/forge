@@ -10,11 +10,11 @@
 					{{template "base/alert" .}}
 					{{if .IsActivatePage}}
 						{{if .ServiceNotEnabled}}
-							<p class="center">{{ctx.Locale.Tr "auth.disable_register_mail"}}</p>
+							<p class="center">{{ctx.Locale.Tr "auth.disable_register_activation"}}</p>
 						{{else if .ResendLimited}}
 							<p class="center">{{ctx.Locale.Tr "auth.resent_limit_prompt"}}</p>
 						{{else}}
-							<p>{{ctx.Locale.Tr "auth.confirmation_mail_sent_prompt" .SignedUser.Email .ActiveCodeLives}}</p>
+							<p>{{ctx.Locale.Tr "auth.confirmation_sent_prompt" .ActiveCodeLives}}</p>
 						{{end}}
 					{{else}}
 						{{if .NeedsPassword}}
@@ -27,7 +27,7 @@
 							</div>
 							<input id="code" name="code" type="hidden" value="{{.Code}}">
 						{{else if .IsSendRegisterMail}}
-							<p>{{ctx.Locale.Tr "auth.confirmation_mail_sent_prompt" .Email .ActiveCodeLives}}</p>
+							<p>{{ctx.Locale.Tr "auth.confirmation_sent_prompt" .ActiveCodeLives}}</p>
 						{{else if .IsCodeInvalid}}
 							<p>{{ctx.Locale.Tr "auth.invalid_code"}}</p>
 						{{else if .IsPasswordInvalid}}
@@ -35,20 +35,10 @@
 						{{else if .ManualActivationOnly}}
 							<p class="center">{{ctx.Locale.Tr "auth.manual_activation_only"}}</p>
 						{{else}}
-							<p>{{ctx.Locale.Tr "auth.has_unconfirmed_mail" .SignedUser.Name .SignedUser.Email}}</p>
+							<p>{{ctx.Locale.Tr "auth.has_unconfirmed_identity" .SignedUser.Name}}</p>
 							<div class="divider"></div>
-							<details class="inline field">
-								<summary>{{ctx.Locale.Tr "auth.change_unconfirmed_email_summary"}}</summary>
-
-								<p>{{ctx.Locale.Tr "auth.change_unconfirmed_email"}}</p>
-								<div class="inline field">
-									<label for="email">{{ctx.Locale.Tr "email"}}</label>
-									<input id="email" name="email" type="email" autocomplete="on">
-								</div>
-							</details>
-
 							<div class="text">
-								<button class="ui primary button">{{ctx.Locale.Tr "auth.resend_mail"}}</button>
+								<button class="ui primary button">{{ctx.Locale.Tr "auth.resend_activation"}}</button>
 							</div>
 						{{end}}
 					{{end}}

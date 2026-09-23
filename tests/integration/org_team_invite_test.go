@@ -27,11 +27,6 @@ import (
 )
 
 func TestOrgTeamEmailInvite(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 	mailerCalled := false
 	defer test.MockVariableValue(&mailer.SendAsync, func(msgs ...*mailer.Message) {
@@ -55,7 +50,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
 	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
 		"uid":   "1",
-		"uname": user.Email,
+		"uname": user.Name,
 	})
 	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
@@ -97,11 +92,6 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 }
 
 func TestOrgTeamEmailInviteWithHiddenMembership(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
@@ -148,11 +138,6 @@ func TestOrgTeamEmailInviteWithHiddenMembership(t *testing.T) {
 
 // Check that users are redirected to accept the invitation correctly after login
 func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
@@ -169,7 +154,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
 	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
 		"uid":   "1",
-		"uname": user.Email,
+		"uname": user.Name,
 	})
 	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
@@ -219,11 +204,6 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 
 // Check that newly signed up users are redirected to accept the invitation correctly
 func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
@@ -291,10 +271,6 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 
 // Check that users are redirected correctly after confirming their email
 func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
 	defer test.MockVariableValue(&setting.Service.RegisterEmailConfirm, true)()
 	defer tests.PrepareTestEnv(t)()
 
@@ -377,11 +353,6 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 // For example: an invite may have been created before the user account was created, but they may be
 // accepting the invite after having created an account separately
 func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
@@ -398,7 +369,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
 	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
 		"uid":   "1",
-		"uname": user.Email,
+		"uname": user.Name,
 	})
 	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
@@ -431,11 +402,6 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 
 // Test that a user can accept a team invite linked to their existing account
 func TestOrgTeamEmailInviteExistingUser(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
@@ -485,11 +451,6 @@ func TestOrgTeamEmailInviteExistingUser(t *testing.T) {
 
 // Test that a user cannot accept or decline an invite if it was meant for another user
 func TestOrgTeamEmailInviteCannotBeAcceptedByOtherUser(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
@@ -535,11 +496,6 @@ func TestOrgTeamEmailInviteCannotBeAcceptedByOtherUser(t *testing.T) {
 
 // Test that a user cannot accept or decline an invite if it is expired
 func TestOrgTeamEmailInviteExpired(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
@@ -584,11 +540,6 @@ func TestOrgTeamEmailInviteExpired(t *testing.T) {
 
 // Test that an invite can be declined
 func TestOrgTeamDeclineInvitation(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})

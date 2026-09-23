@@ -10,19 +10,13 @@ package lxmfnotify
 
 import (
 	"context"
-	"fmt"
-	"net/url"
 	"strings"
 
-	auth_model "forgejo.org/models/auth"
-	org_model "forgejo.org/models/organization"
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/graceful"
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/rns"
 	"forgejo.org/modules/setting"
-	"forgejo.org/modules/timeutil"
-	"forgejo.org/modules/translation"
 )
 
 // Available reports whether LXMF delivery is enabled and the node is running.
@@ -101,95 +95,32 @@ func sendAll(hashes []string, subject, content string) {
 	}
 }
 
-// SendActivateAccount sends the account activation code over LXMF.
-func SendActivateAccount(ctx context.Context, u *user_model.User) error {
+// SendMessage delivers a subject and content message to the Reticulum
+// identities of the user. When verifiedOnly is set only verified identities
+// receive the message.
+func SendMessage(ctx context.Context, u *user_model.User, subject, content string, verifiedOnly bool) {
 	if !Available() {
-		return fmt.Errorf("lxmf delivery is not enabled")
-	}
-	hashes := identityHashes(ctx, u, false)
-	if len(hashes) == 0 {
-		return fmt.Errorf("user has no Reticulum identity")
-	}
-	locale := translation.NewLocale(u.Language)
-	code, err := u.GenerateEmailAuthorizationCode(ctx, auth_model.UserActivation)
-	if err != nil {
-		return err
-	}
-	activateURL := fmt.Sprintf("%suser/activate?code=%s", setting.AppURL, url.QueryEscape(code))
-	subject := locale.TrString("mail.activate_account")
-	content := fmt.Sprintf("%s\n%s %s",
-		locale.TrString("mail.activate_account.text_1", u.DisplayName(), setting.AppName),
-		locale.TrString("mail.activate_account.text_2", timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale)),
-		activateURL)
-	sendAll(hashes, subject, content)
-	return nil
-}
-
-// SendResetPassword sends a password reset code over LXMF.
-func SendResetPassword(ctx context.Context, u *user_model.User) error {
-	if !Available() {
-		return fmt.Errorf("lxmf delivery is not enabled")
-	}
-	hashes := identityHashes(ctx, u, false)
-	if len(hashes) == 0 {
-		return fmt.Errorf("user has no Reticulum identity")
-	}
-	locale := translation.NewLocale(u.Language)
-	code, err := u.GenerateEmailAuthorizationCode(ctx, auth_model.PasswordReset)
-	if err != nil {
-		return err
-	}
-	recoverURL := fmt.Sprintf("%suser/recover_account?code=%s", setting.AppURL, url.QueryEscape(code))
-	subject := locale.TrString("mail.reset_password")
-	content := fmt.Sprintf("%s\n%s %s",
-		locale.TrString("mail.reset_password.text", timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, locale)),
-		locale.TrString("mail.link_not_working_do_paste"),
-		recoverURL)
-	sendAll(hashes, subject, content)
-	return nil
-}
-
-// SendIssueActivity sends a compact issue or pull request activity notice to
-// the verified identities of the user.
-func SendIssueActivity(u *user_model.User, hashes []string, subject, link string) {
-	if !Available() || len(hashes) == 0 {
 		return
 	}
-	content := fmt.Sprintf("%s\n\n%s", subject, link)
+	hashes := identityHashes(ctx, u, verifiedOnly)
+	if len(hashes) == 0 {
+		return
+	}
 	sendAll(hashes, subject, content)
+}
+
+// SendToIdentity delivers a subject and content message directly to a
+// Reticulum identity hash that may not belong to a registered account.
+// Used for team invitations to people without an account.
+func SendToIdentity(identityHash, subject, content string) {
+	if !Available() {
+		return
+	}
+	sendAll([]string{identityHash}, subject, content)
 }
 
 // SendSecurityNotice sends a plain security notice to all verified
 // identities of the user.
 func SendSecurityNotice(ctx context.Context, u *user_model.User, subject, content string) {
-	if !Available() {
-		return
-	}
-	hashes := identityHashes(ctx, u, true)
-	if len(hashes) == 0 {
-		return
-	}
-	sendAll(hashes, subject, content)
-}
-
-// SendTeamInvite delivers a team invitation to a Reticulum identity that has
-// no account yet. The invite token is a bearer credential delivered inside an
-// encrypted LXMF message.
-func SendTeamInvite(ctx context.Context, inviter *user_model.User, team *org_model.Team, invite *org_model.TeamInvite, identityHash string) error {
-	if !Available() {
-		return fmt.Errorf("lxmf delivery is not enabled")
-	}
-	org, err := user_model.GetUserByID(ctx, team.OrgID)
-	if err != nil {
-		return err
-	}
-	locale := translation.NewLocale(inviter.Language)
-	inviteURL := fmt.Sprintf("%suser/sign_up?redirect_to=%s", setting.AppURL, url.QueryEscape("/org/invite/"+invite.Token))
-	subject := locale.TrString("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
-	content := fmt.Sprintf("%s\n%s %s",
-		locale.TrString("mail.team_invite.text_1", inviter.DisplayName(), team.Name, org.DisplayName()),
-		locale.TrString("mail.team_invite.text_2"),
-		inviteURL)
-	sendAll([]string{identityHash}, subject, content)
-	return nil
+	SendMessage(ctx, u, subject, content, true)
 }

@@ -37,14 +37,14 @@ var (
 func ForgotPasswd(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
-	if setting.MailService == nil && !lxmfnotify.Available() {
-		log.Warn("no mail service configured")
+	if !lxmfnotify.Configured() {
+		log.Warn("no notification service configured")
 		ctx.Data["IsResetDisable"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
 	}
 
-	ctx.Data["Email"] = ctx.FormString("email")
+	ctx.Data["Account"] = ctx.FormString("account")
 
 	ctx.Data["IsResetRequest"] = true
 	ctx.HTML(http.StatusOK, tplForgotPassword)
@@ -54,19 +54,19 @@ func ForgotPasswd(ctx *context.Context) {
 func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
-	if setting.MailService == nil && !lxmfnotify.Available() {
+	if !lxmfnotify.Configured() {
 		ctx.NotFound("ForgotPasswdPost", nil)
 		return
 	}
 	ctx.Data["IsResetRequest"] = true
 
-	email := ctx.FormString("email")
-	ctx.Data["Email"] = email
+	account := ctx.FormString("account")
+	ctx.Data["Account"] = account
 
-	// The resend limit is keyed on the submitted address and applied uniformly
-	// so that the response can not be used to determine whether an email is
-	// registered, or what kind of login source the account uses.
-	limitKey := "MailResendLimit_" + strings.ToLower(email)
+	// The resend limit is keyed on the submitted identifier and applied
+	// uniformly so that the response can not be used to determine whether an
+	// account exists, or what kind of login source the account uses.
+	limitKey := "MailResendLimit_" + strings.ToLower(account)
 	if ctx.Cache.IsExist(limitKey) {
 		ctx.Data["ResendLimited"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
@@ -82,11 +82,11 @@ func ForgotPasswdPost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplForgotPassword)
 	}
 
-	u, err := user_model.GetUserByEmailSimple(ctx, email)
-	if err != nil && user_model.IsErrUserNotExist(err) && user_model.IsRNSIdentityHash(email) {
-		// The input may be a Reticulum identity hash rather than an email
-		// address. Resolution failure stays indistinguishable below.
-		u, err = user_model.GetUserByRNSIdentityHash(ctx, email)
+	// The input may be a username or a Reticulum identity hash. Resolution
+	// failure stays indistinguishable below.
+	u, err := user_model.GetUserByName(ctx, account)
+	if err != nil && user_model.IsErrUserNotExist(err) && user_model.IsRNSIdentityHash(account) {
+		u, err = user_model.GetUserByRNSIdentityHash(ctx, account)
 	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
@@ -162,10 +162,10 @@ func commonResetPassword(ctx *context.Context, shouldDeleteToken bool) (*user_mo
 	}
 
 	// Show the user that they are affecting the account that they intended to
-	ctx.Data["user_email"] = u.Email
+	ctx.Data["user_name"] = u.Name
 
 	if nil != ctx.Doer && u.ID != ctx.Doer.ID {
-		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.Doer.Email, u.Email), true)
+		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.Doer.Name, u.Name), true)
 		return nil, nil
 	}
 

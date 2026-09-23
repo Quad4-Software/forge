@@ -291,5 +291,4 @@ func LoadSettingsForInstall() {
 
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
-	loadMailerFrom(CfgProvider)
 }

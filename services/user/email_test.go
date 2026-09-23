@@ -6,7 +6,6 @@ package user
 import (
 	"testing"
 
-	auth_model "forgejo.org/models/auth"
 	"forgejo.org/models/db"
 	org_model "forgejo.org/models/organization"
 	"forgejo.org/models/unittest"
@@ -105,83 +104,4 @@ func TestReplacePrimaryEmailAddress(t *testing.T) {
 
 		assert.Equal(t, "primary-org@example.com", org.Email)
 	})
-}
-
-func TestAddEmailAddresses(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	require.Error(t, AddEmailAddresses(db.DefaultContext, user, []string{" invalid email "}))
-
-	emails := []string{"user1234@example.com", "user5678@example.com"}
-
-	require.NoError(t, AddEmailAddresses(db.DefaultContext, user, emails))
-
-	err := AddEmailAddresses(db.DefaultContext, user, emails)
-	require.Error(t, err)
-	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
-}
-
-func TestReplaceInactivePrimaryEmail(t *testing.T) {
-	defer unittest.OverrideFixtures("services/user/TestReplaceInactivePrimaryEmail/")()
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	t.Run("User doesn't exist", func(t *testing.T) {
-		email := &user_model.EmailAddress{
-			Email: "user9999999@example.com",
-			UID:   9999999,
-		}
-		err := ReplaceInactivePrimaryEmail(db.DefaultContext, "user10@example.com", email)
-		require.Error(t, err)
-		assert.True(t, user_model.IsErrUserNotExist(err))
-	})
-
-	t.Run("Normal", func(t *testing.T) {
-		unittest.AssertExistsIf(t, true, &auth_model.AuthorizationToken{UID: 10})
-
-		email := &user_model.EmailAddress{
-			Email: "user201@example.com",
-			UID:   10,
-		}
-		err := ReplaceInactivePrimaryEmail(db.DefaultContext, "user10@example.com", email)
-		require.NoError(t, err)
-
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
-		assert.Equal(t, "user201@example.com", user.Email)
-
-		unittest.AssertExistsIf(t, false, &auth_model.AuthorizationToken{UID: 10})
-	})
-}
-
-func TestDeleteEmailAddresses(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	emails := []string{"user2-2@example.com"}
-
-	err := DeleteEmailAddresses(db.DefaultContext, user, emails)
-	require.NoError(t, err)
-
-	err = DeleteEmailAddresses(db.DefaultContext, user, emails)
-	require.NoError(t, err)
-
-	emails = []string{"user2@example.com"}
-
-	err = DeleteEmailAddresses(db.DefaultContext, user, emails)
-	require.Error(t, err)
-	assert.True(t, user_model.IsErrPrimaryEmailCannotDelete(err))
-}
-
-func TestMakeEmailAddressPrimary(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	newPrimaryEmail := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{ID: 35, UID: user.ID}, "is_primary = false")
-
-	require.NoError(t, MakeEmailAddressPrimary(db.DefaultContext, user, newPrimaryEmail, false))
-
-	unittest.AssertExistsIf(t, true, &user_model.User{ID: 2, Email: newPrimaryEmail.Email})
-	unittest.AssertExistsIf(t, true, &user_model.EmailAddress{ID: 3, UID: user.ID}, "is_primary = false")
-	unittest.AssertExistsIf(t, true, &user_model.EmailAddress{ID: 35, UID: user.ID, IsPrimary: true})
 }

@@ -21,7 +21,6 @@ import (
 	"forgejo.org/services/auth/source/ldap"
 	"forgejo.org/services/auth/source/oauth2"
 	pam_service "forgejo.org/services/auth/source/pam"
-	"forgejo.org/services/auth/source/smtp"
 	"forgejo.org/services/context"
 	"forgejo.org/services/forms"
 
@@ -59,7 +58,6 @@ var (
 		items := []dropdownItem{
 			{auth.LDAP.String(), auth.LDAP},
 			{auth.DLDAP.String(), auth.DLDAP},
-			{auth.SMTP.String(), auth.SMTP},
 			{auth.OAuth2.String(), auth.OAuth2},
 		}
 		if pam.Supported {
@@ -83,12 +81,10 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["type"] = auth.LDAP.Int()
 	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
-	ctx.Data["smtp_auth"] = "PLAIN"
 	ctx.Data["is_active"] = true
 	ctx.Data["is_sync_enabled"] = true
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
-	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
@@ -135,20 +131,6 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		AllowDeactivateAll:    form.AllowDeactivateAll,
 		Enabled:               true,
 		SkipLocalTwoFA:        form.SkipLocalTwoFA,
-	}
-}
-
-func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
-	return &smtp.Source{
-		Auth:           form.SMTPAuth,
-		Host:           form.SMTPHost,
-		Port:           form.SMTPPort,
-		AllowedDomains: form.AllowedDomains,
-		ForceSMTPS:     form.ForceSMTPS,
-		SkipVerify:     form.SkipVerify,
-		HeloHostname:   form.HeloHostname,
-		DisableHelo:    form.DisableHelo,
-		SkipLocalTwoFA: form.SkipLocalTwoFA,
 	}
 }
 
@@ -209,7 +191,6 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocol(form.SecurityProtocol)]
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
-	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
@@ -219,9 +200,6 @@ func NewAuthSourcePost(ctx *context.Context) {
 	case auth.LDAP, auth.DLDAP:
 		config = parseLDAPConfig(form)
 		hasTLS = ldap.SecurityProtocol(form.SecurityProtocol) > ldap.SecurityProtocolUnencrypted
-	case auth.SMTP:
-		config = parseSMTPConfig(form)
-		hasTLS = true
 	case auth.PAM:
 		config = &pam_service.Source{
 			ServiceName:    form.PAMServiceName,
@@ -282,7 +260,6 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
-	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
@@ -316,7 +293,6 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
@@ -337,8 +313,6 @@ func EditAuthSourcePost(ctx *context.Context) {
 	switch auth.Type(form.Type) {
 	case auth.LDAP, auth.DLDAP:
 		config = parseLDAPConfig(form)
-	case auth.SMTP:
-		config = parseSMTPConfig(form)
 	case auth.PAM:
 		config = &pam_service.Source{
 			ServiceName: form.PAMServiceName,

@@ -69,7 +69,6 @@
 							{{ctx.Locale.Tr "admin.users.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
 						</th>
-						<th>{{ctx.Locale.Tr "email"}}</th>
 						<th>{{ctx.Locale.Tr "admin.users.activated"}}</th>
 						<th>{{ctx.Locale.Tr "admin.users.restricted"}}</th>
 						<th>{{ctx.Locale.Tr "admin.users.2fa"}}</th>
@@ -97,7 +96,6 @@
 									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.remote"}}</span>
 								{{end}}
 							</td>
-							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
 							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>

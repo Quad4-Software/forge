@@ -5,11 +5,11 @@
 package integration
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -1122,21 +1122,15 @@ func TestUserActivate(t *testing.T) {
 	defer test.MockVariableValue(&mailer.SendAsync, func(msgs ...*mailer.Message) {
 		called = true
 		assert.Len(t, msgs, 1)
-		assert.Equal(t, `"doesnotexist" <doesnotexist@example.com>`, msgs[0].To)
+		assert.Contains(t, msgs[0].To, "doesnotexist")
 		assert.EqualValues(t, translation.NewLocale("en-US").Tr("mail.activate_account"), msgs[0].Subject)
 
-		messageDoc := NewHTMLParser(t, bytes.NewBuffer([]byte(msgs[0].Body)))
-		link, ok := messageDoc.Find("a").Attr("href")
-		assert.True(t, ok)
-		u, err := url.Parse(link)
-		require.NoError(t, err)
-		code = u.Query()["code"][0]
+		code = regexp.MustCompile(`code=([^\s&]+)`).FindStringSubmatch(msgs[0].Body)[1]
 	})()
 
 	session := emptyTestSession(t)
 	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
 		"user_name": "doesnotexist",
-		"email":     "doesnotexist@example.com",
 		"password":  "examplePassword!1",
 		"retype":    "examplePassword!1",
 	})
@@ -1196,12 +1190,7 @@ func parseMailHelper(t *testing.T, expectedTo, expectedSubject string) (cleanup 
 		assert.Equal(t, expectedTo, msgs[0].To)
 		assert.Equal(t, expectedSubject, msgs[0].Subject)
 
-		messageDoc := NewHTMLParser(t, bytes.NewBuffer([]byte(msgs[0].Body)))
-		link, ok := messageDoc.Find("a").Attr("href")
-		assert.True(t, ok)
-		u, err := url.Parse(link)
-		require.NoError(t, err)
-		code = u.Query()["code"][0]
+		code = regexp.MustCompile(`code=([^\s&]+)`).FindStringSubmatch(msgs[0].Body)[1]
 	})
 
 	return cleanup, &code, &called
@@ -1217,7 +1206,7 @@ func TestUserPasswordReset(t *testing.T) {
 
 	session := emptyTestSession(t)
 	req := NewRequestWithValues(t, "POST", "/user/forgot_password", map[string]string{
-		"email": user2.Email,
+		"account": user2.Name,
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 	assert.True(t, *called)

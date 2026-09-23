@@ -15,7 +15,6 @@ import (
 	auth_service "forgejo.org/services/auth"
 	db_source "forgejo.org/services/auth/source/db"
 	"forgejo.org/services/auth/source/oauth2"
-	"forgejo.org/services/auth/source/smtp"
 
 	_ "forgejo.org/services/auth/source/ldap" // register the ldap source
 	_ "forgejo.org/services/auth/source/pam"  // register the pam source
@@ -73,7 +72,7 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 			authenticator, ok := source.Cfg.(auth_service.PasswordAuthenticator)
 			if !ok {
 				db_source.VerifyPasswordAgainstDummyHash(password)
-				return nil, nil, smtp.ErrUnsupportedLoginType
+				return nil, nil, auth.ErrUnsupportedLoginType
 			}
 
 			user, err := authenticator.Authenticate(ctx, user, user.LoginName, password)

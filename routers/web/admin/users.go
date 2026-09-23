@@ -22,7 +22,6 @@ import (
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/optional"
 	"forgejo.org/modules/setting"
-	"forgejo.org/modules/validation"
 	"forgejo.org/modules/web"
 	"forgejo.org/routers/web/explore"
 	user_setting "forgejo.org/routers/web/user/setting"
@@ -95,7 +94,7 @@ func Users(ctx *context.Context) {
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
 		AccountType:        accountTypeFilter,
-		IncludeReserved:    true, // administrator needs to list all accounts include reserved, bot, remote ones
+		IncludeReserved:    true,
 		Load2FAStatus:      true,
 		ExtraParamStrings:  extraParamStrings,
 	}, tplUsers)
@@ -119,7 +118,6 @@ func NewUser(ctx *context.Context) {
 	}
 	ctx.Data["Sources"] = sources
 
-	ctx.Data["CanSendEmail"] = setting.MailService != nil
 	ctx.HTML(http.StatusOK, tplUserNew)
 }
 
@@ -140,8 +138,6 @@ func NewUserPost(ctx *context.Context) {
 	}
 	ctx.Data["Sources"] = sources
 
-	ctx.Data["CanSendEmail"] = setting.MailService != nil
-
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplUserNew)
 		return
@@ -149,7 +145,7 @@ func NewUserPost(ctx *context.Context) {
 
 	u := &user_model.User{
 		Name:      form.UserName,
-		Email:     form.Email,
+		Email:     user_model.PlaceholderEmail(form.UserName),
 		Passwd:    form.Password,
 		LoginType: auth.Plain,
 	}
@@ -197,12 +193,6 @@ func NewUserPost(ctx *context.Context) {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplUserNew, &form)
-		case user_model.IsErrEmailAlreadyUsed(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserNew, &form)
-		case validation.IsErrEmailInvalid(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
 		case db.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tplUserNew, &form)
@@ -215,15 +205,11 @@ func NewUserPost(ctx *context.Context) {
 		return
 	}
 
-	if _, ok := validation.IsEmailDomainAllowed(u.Email); !ok {
-		ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", u.Email))
-	}
-
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
 	if form.SendNotify {
-		mailer.SendRegisterNotifyMail(u)
+		mailer.SendRegisterNotifyMail(ctx, u)
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
@@ -421,25 +407,6 @@ func EditUserPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 		}
 		return
-	}
-
-	if form.Email != "" {
-		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, u, form.Email); err != nil {
-			switch {
-			case validation.IsErrEmailInvalid(err):
-				ctx.Data["Err_Email"] = true
-				ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
-			case user_model.IsErrEmailAlreadyUsed(err):
-				ctx.Data["Err_Email"] = true
-				ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
-			default:
-				ctx.ServerError("AddOrSetPrimaryEmailAddress", err)
-			}
-			return
-		}
-		if _, ok := validation.IsEmailDomainAllowed(form.Email); !ok {
-			ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", form.Email))
-		}
 	}
 
 	opts := &user_service.UpdateOptions{

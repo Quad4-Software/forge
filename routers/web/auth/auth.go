@@ -31,7 +31,6 @@ import (
 	auth_service "forgejo.org/services/auth"
 	auth_method "forgejo.org/services/auth/method"
 	"forgejo.org/services/auth/source/oauth2"
-	"forgejo.org/services/auth/source/smtp"
 	"forgejo.org/services/context"
 	"forgejo.org/services/externalaccount"
 	"forgejo.org/services/forms"
@@ -248,7 +247,7 @@ func SignInPost(ctx *context.Context) {
 	u, source, err := auth_method.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) ||
-			errors.Is(err, oauth2.ErrAuthSourceNotActivated) || errors.Is(err, smtp.ErrUnsupportedLoginType) {
+			errors.Is(err, oauth2.ErrAuthSourceNotActivated) || errors.Is(err, auth.ErrUnsupportedLoginType) {
 			log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
 		} else if user_model.IsErrEmailAlreadyUsed(err) {
@@ -294,7 +293,6 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	updates := map[string]any{
-		// User will need to use 2FA TOTP or WebAuthn, save data
 		"twofaUid":      u.ID,
 		"twofaRemember": form.Remember,
 	}
@@ -347,7 +345,6 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	}
 
 	if err := updateSession(ctx, []string{
-		// Delete the openid, 2fa and linkaccount data
 		"openid_verified_uri",
 		"openid_signin_remember",
 		"openid_determined_email",
@@ -465,7 +462,7 @@ func SignUp(ctx *context.Context) {
 	context.SetCaptchaData(ctx)
 
 	ctx.Data["PageIsSignUp"] = true
-	ctx.Data["EmailOptional"] = setting.RNS.Enabled && setting.RNS.EmailOptional
+	ctx.Data["RNSIdentityRequired"] = lxmfnotify.Available()
 	ctx.Data["UsernamePrefix"] = setting.Service.UsernamePrefix
 
 	registrationDisabled(ctx)
@@ -500,7 +497,7 @@ func SignUpPost(ctx *context.Context) {
 	context.SetCaptchaData(ctx)
 
 	ctx.Data["PageIsSignUp"] = true
-	ctx.Data["EmailOptional"] = setting.RNS.Enabled && setting.RNS.EmailOptional
+	ctx.Data["RNSIdentityRequired"] = lxmfnotify.Available()
 	ctx.Data["UsernamePrefix"] = setting.Service.UsernamePrefix
 
 	if ctx.HasError() {
@@ -513,7 +510,7 @@ func SignUpPost(ctx *context.Context) {
 		return
 	}
 
-	emailOptional := setting.RNS.Enabled && setting.RNS.EmailOptional
+	rnsEnabled := lxmfnotify.Available()
 
 	var rnsIdentity string
 	if form.RNSIdentity != "" {
@@ -534,17 +531,11 @@ func SignUpPost(ctx *context.Context) {
 		rnsIdentity = h
 	}
 
-	if form.Email == "" {
-		if !emailOptional || rnsIdentity == "" {
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_empty"), tplSignUp, &form)
-			return
-		}
-	} else if emailValid, ok := form.IsEmailDomainAllowed(); !emailValid {
-		ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSignUp, form)
-		return
-	} else if !ok {
-		ctx.RenderWithErr(ctx.Tr("auth.email_domain_blacklisted"), tplSignUp, &form)
+	// Email addresses are not used. A Reticulum identity is required when RNS
+	// is enabled since it is the only user contact and verification channel.
+	if rnsEnabled && rnsIdentity == "" {
+		ctx.Data["Err_RNSIdentity"] = true
+		ctx.RenderWithErr(ctx.Tr("form.rns_identity_required"), tplSignUp, &form)
 		return
 	}
 
@@ -576,15 +567,13 @@ func SignUpPost(ctx *context.Context) {
 
 	u := &user_model.User{
 		Name:   form.UserName,
-		Email:  form.Email,
+		Email:  user_model.PlaceholderEmail(form.UserName),
 		Passwd: form.Password,
 	}
 	var overwrites *user_model.CreateUserOverwriteOptions
-	if u.Email == "" {
-		u.Email = fmt.Sprintf("%s@%s", strings.ToLower(u.Name), setting.Service.NoReplyAddress)
-		// Email-less signups must prove possession of the Reticulum identity
-		// through LXMF activation before the account becomes usable, even when
-		// email confirmation is disabled for regular accounts.
+	if rnsIdentity != "" {
+		// Signups with a Reticulum identity must prove possession of the
+		// identity through LXMF activation before the account becomes usable.
 		overwrites = &user_model.CreateUserOverwriteOptions{
 			IsActive: optional.Some(false),
 		}
@@ -727,7 +716,6 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 		}
 
 		ctx.Data["IsSendRegisterMail"] = true
-		ctx.Data["Email"] = u.Email
 		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
@@ -751,17 +739,9 @@ func Activate(ctx *context.Context) {
 			ctx.NotFound("invalid user", nil)
 			return
 		}
-		// Resend confirmation email.
+		// Resend activation message over LXMF.
 		if setting.Service.RegisterEmailConfirm {
-			var cacheKey string
-			if ctx.Cache.IsExist("MailChangedJustNow_" + ctx.Doer.LowerName) {
-				cacheKey = "MailChangedLimit_"
-				if err := ctx.Cache.Delete("MailChangedJustNow_" + ctx.Doer.LowerName); err != nil {
-					log.Error("Delete cache(MailChangedJustNow) fail: %v", err)
-				}
-			} else {
-				cacheKey = "MailResendLimit_"
-			}
+			const cacheKey = "MailResendLimit_"
 			if ctx.Cache.IsExist(cacheKey + ctx.Doer.LowerName) {
 				ctx.Data["ResendLimited"] = true
 			} else {
@@ -815,43 +795,6 @@ func Activate(ctx *context.Context) {
 func ActivatePost(ctx *context.Context) {
 	code := ctx.FormString("code")
 	if len(code) == 0 {
-		email := ctx.FormString("email")
-		if len(email) > 0 {
-			ctx.Data["IsActivatePage"] = true
-			if ctx.Doer == nil || ctx.Doer.IsActive {
-				ctx.NotFound("invalid user", nil)
-				return
-			}
-			// Change the primary email
-			if setting.Service.RegisterEmailConfirm {
-				if ctx.Cache.IsExist("MailChangeLimit_" + ctx.Doer.LowerName) {
-					ctx.Data["ResendLimited"] = true
-				} else {
-					ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
-					err := user_service.ReplaceInactivePrimaryEmail(ctx, ctx.Doer.Email, &user_model.EmailAddress{
-						UID:   ctx.Doer.ID,
-						Email: email,
-					})
-					if err != nil {
-						ctx.Data["IsActivatePage"] = false
-						log.Error("Couldn't replace inactive primary email of user %d: %v", ctx.Doer.ID, err)
-						ctx.RenderWithErr(ctx.Tr("auth.change_unconfirmed_email_error", err), TplActivate, nil)
-						return
-					}
-					if err := ctx.Cache.Put("MailChangeLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-						log.Error("Set cache(MailChangeLimit) fail: %v", err)
-					}
-					if err := ctx.Cache.Put("MailChangedJustNow_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-						log.Error("Set cache(MailChangedJustNow) fail: %v", err)
-					}
-
-					// Confirmation mail will be re-sent after the redirect to `/user/activate` below.
-				}
-			} else {
-				ctx.Data["ServiceNotEnabled"] = true
-			}
-		}
-
 		ctx.Redirect(setting.AppSubURL + "/user/activate")
 		return
 	}
@@ -954,49 +897,6 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/")
-}
-
-// ActivateEmail render the activate email page
-func ActivateEmail(ctx *context.Context) {
-	code := ctx.FormString("code")
-	emailStr := ctx.FormString("email")
-
-	u, _, deleteToken, err := user_model.VerifyUserAuthorizationToken(ctx, code, auth.EmailActivation(emailStr))
-	if err != nil {
-		ctx.ServerError("VerifyUserAuthorizationToken", err)
-		return
-	}
-	if u == nil {
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-		return
-	}
-
-	if err := deleteToken(); err != nil {
-		ctx.ServerError("deleteToken", err)
-		return
-	}
-
-	email, err := user_model.GetEmailAddressOfUser(ctx, emailStr, u.ID)
-	if err != nil {
-		ctx.ServerError("GetEmailAddressOfUser", err)
-		return
-	}
-
-	if err := user_model.ActivateEmail(ctx, email); err != nil {
-		ctx.ServerError("ActivateEmail", err)
-		return
-	}
-
-	log.Trace("Email activated: %s", email.Email)
-	ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
-
-	// Allow user to validate more emails
-	_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
-
-	// FIXME: e-mail verification does not require the user to be logged in,
-	// so this could be redirecting to the login page.
-	// Should users be logged in automatically here? (consider 2FA requirements, etc.)
-	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 func updateSession(ctx *context.Context, deletes []string, updates map[string]any) error {

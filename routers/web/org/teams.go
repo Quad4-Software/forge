@@ -23,7 +23,6 @@ import (
 	"forgejo.org/modules/base"
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/setting"
-	"forgejo.org/modules/validation"
 	"forgejo.org/modules/web"
 	shared_user "forgejo.org/routers/web/shared/user"
 	"forgejo.org/services/context"
@@ -147,17 +146,6 @@ func TeamsAction(ctx *context.Context) {
 							ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 						} else {
 							ctx.ServerError("CreateTeamInviteByRNSIdentity", err)
-							return
-						}
-					}
-				} else if setting.MailService != nil && validation.ValidateEmail(uname) == nil {
-					if err := org_service.CreateTeamInviteByEmail(ctx, ctx.Doer, ctx.Org.Team, uname); err != nil {
-						if org_model.IsErrTeamInviteAlreadyExist(err) {
-							ctx.Flash.Error(ctx.Tr("form.duplicate_invite_to_team"))
-						} else if org_model.IsErrUserEmailAlreadyAdded(err) {
-							ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
-						} else {
-							ctx.ServerError("CreateTeamInvite", err)
 							return
 						}
 					}
@@ -438,7 +426,6 @@ func TeamMembers(ctx *context.Context) {
 	}
 	ctx.Data["PendingInvites"] = pendingInvites
 	ctx.Data["ExpiredInvites"] = expiredInvites
-	ctx.Data["IsEmailInviteEnabled"] = setting.MailService != nil
 
 	ctx.HTML(http.StatusOK, tplTeamMembers)
 }

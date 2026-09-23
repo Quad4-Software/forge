@@ -396,7 +396,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 
 	u := &user_model.User{
 		Name:   form.UserName,
-		Email:  form.Email,
+		Email:  user_model.PlaceholderEmail(form.UserName),
 		Passwd: password,
 	}
 	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, nil, false) {
