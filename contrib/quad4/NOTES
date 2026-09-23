@@ -21,21 +21,82 @@ Branding
   Rebuild: contrib/quad4/rebuild-brand.sh
 
 DevOps platform features
-  ALTCHA captcha (embedded in Forge): CAPTCHA_TYPE=altcha
-  Docs: https://altcha.org/docs/ https://altcha.org/docs/integration/quick-start/
+  Bot protection: RavenGuard edge (ALTCHA removed)
   Optional external Sentry/GlitchTip DSN via [sentry] (not shipped in compose)
   Public OSINT hardening: footer Powered by / Version / Page / Template only for
   signed-in users. GET /api/v1/version requires auth. Anonymous pages stay silent.
+
+Notifications (no SMTP, no email)
+  Outbound email/SMTP and incoming email are removed. Account activation,
+  password reset, security notices, issue/PR activity, releases, repo
+  transfers, team invites and admin notices are delivered over LXMF to
+  Reticulum identities registered on the account.
+  Requires [rns] ENABLED=true and ENABLE_LXMF=true. When LXMF is available,
+  signup requires a Reticulum identity hash and the account starts inactive
+  until the delivered activation link is used.
+  services/mailer keeps the notifier API; Message/SendAsync dispatch over
+  LXMF via services/lxmfnotify. Security notices and invites to existing
+  users go to verified identities only.
+  Users still have a placeholder email column (name@NO_REPLY_ADDRESS) for
+  model/API compatibility, but nothing is delivered to it. Password reset
+  resolves by username or Reticulum identity hash.
+  Users manage identities under /user/settings/rns_keys.
+
+Secure setup link
+  While INSTALL_LOCK is false the install page is gated by a token:
+  custom/setup-token (mode 0600) holds a 256 bit token plus a 1h expiry.
+  Startup prints "http://host/?key=..." to stdout only, never to the log.
+  GET / needs ?key=, POST / needs the hidden setup_key form field. Wrong or
+  expired keys get a 403 page pointing at the regenerate command:
+    forge admin regenerate-setup-link
+  Regeneration works against a running server, the token file is re-read per
+  request. Successful install deletes the token. Routers: routers/install/setup.go.
+
+QA gates
+  make test-qa    runs the page-matrix axe scan plus Lighthouse CI.
+  tests/e2e/pages-a11y.test.e2e.ts  scans 24 seeded pages (anon + auth) and
+    fails on new violation rules or counts above tests/e2e/pages-a11y-baseline.json.
+    Regenerate baseline: UPDATE_A11Y_BASELINE=1 plus the same test run.
+    Matrix is pinned to the chromium project for a stable baseline.
+  tests/e2e/lighthouse_test.go    RUN_LIGHTHOUSE=1 gate, boots the seeded
+    server and runs npx lhci autorun with lighthouserc.cjs. Reports land in
+    tests/e2e/reports/lhci (filesystem target, nothing uploaded).
+    Accessibility floor 0.8, raise it as baseline violations get fixed.
+  .github/workflows/qa.yml        CI job for both, zizmor clean.
 
 Compose
   docker-compose.yml           hardened stack: RavenGuard edge -> forge + postgres + Valkey
   docker-compose.coolify.yml   Coolify: SERVICE_URL_* only on ravenguard:8080
   deploy/ravenguard/           ravenguard.toml (local edge), ravenguard.coolify.toml (behind Coolify)
   .env.example                 copy to .env
-  Valkey: cache/session/queue via redis://valkey:6379 (Redis-protocol compatible)
+  Valkey: cache/session/queue via rediss://default:pass@valkey:6379 (TLS + auth)
+  SurrealDB optional: surreal://user:pass@host:8000/ns/db (modules/nosql/surreal.go)
   Hardening: no-new-privileges, cap_drop ALL (postgres gets minimal cap_add), healthchecks
+  Internal TLS: pki-init (one-shot, openssl from the valkey image) issues an
+    internal CA plus server certs for db and valkey into the forge-pki volume.
+    The CA private key never leaves the init container tmpfs.
+    Postgres: ssl=on, certs from /pki, custom pg_hba.conf requires hostssl +
+    scram-sha-256 for all network conns (local socket stays trust for
+    initdb/healthcheck). Forge uses SSL_MODE=verify-full.
+    Valkey: TLS-only listener (--port 0 --tls-port 6379), requirepass auth,
+    tls-auth-clients no. Forge uses rediss:// URIs with the default user.
+    Forge trusts the CA via SSL_CERT_DIR=/etc/ssl/certs:/pki (forge-ca volume
+    carries only ca.crt). Verified live: TLS_AES_256_GCM_SHA384 on forge pg
+    conns, wrong password/plaintext/missing CA all rejected.
+    Rotation: to re-issue certs, remove forge-pki + forge-ca volumes and let
+    pki-init regenerate; restart the stack.
+    Required secrets: FORGE_DB_PASSWORD, VALKEY_PASSWORD, RG_CHALLENGE_SECRET.
   RavenGuard: https://github.com/Quad4-Software/ravenguard (standalone edge, not hub proxy mode)
   Coolify: assign domain to ravenguard only. Forge ROOT_URL reuses SERVICE_URL_RAVENGUARD_8080.
+
+Crow CI
+  docker-compose.crow.yml    standalone Crow v6.9.0 stack (digest-pinned
+    codefloe.com/crowci/crow-server + crow-agent). Separate deploy, talks to
+    Forge over public URLs only: webhooks forge -> crow, API/OAuth crow -> forge.
+    Setup: create a Forge OAuth2 app with redirect ${CROW_HOST}/authorize,
+    set CROW_HOST FORGEJO_URL CROW_FORGEJO_CLIENT/SECRET CROW_AGENT_SECRET.
+    Coolify: add as its own Docker Compose resource, domain on crow:8000.
+    Agent mounts /var/run/docker.sock = host-root equivalent, CI jobs host only.
 
 DevOps companions (optional next)
   Prefer behind RavenGuard or private network. Catalog: https://selfh.st/apps/

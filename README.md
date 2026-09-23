@@ -8,7 +8,7 @@
     <p align="center">Coffee. Code. Forge.</p>
 </div>
 
-**Quad4 Forge** is a fork of [Forgejo](https://forgejo.org/) for self-hosted Git and devops, with Quad4 branding, a charcoal/ember dark theme, embedded [ALTCHA](https://altcha.org/), optional Sentry/GlitchTip DSN hooks, and a hardened Docker stack fronted by [RavenGuard](https://github.com/Quad4-Software/ravenguard).
+**Quad4 Forge** is a fork of [Forgejo](https://forgejo.org/) for self-hosted Git and devops, with Quad4 branding, a charcoal/ember dark theme, optional Sentry/GlitchTip DSN hooks, and a hardened Docker stack fronted by [RavenGuard](https://github.com/Quad4-Software/ravenguard).
 
 Upstream Forgejo remains free software under GPLv3+. This fork tracks Forgejo and adds Quad4 packaging, theme, and deploy defaults.
 
@@ -16,7 +16,7 @@ Upstream Forgejo remains free software under GPLv3+. This fork tracks Forgejo an
 
 ```bash
 cp .env.example .env
-# set FORGE_DB_PASSWORD, ALTCHA_HMAC_KEY, RG_CHALLENGE_SECRET (min 16 chars)
+# set FORGE_DB_PASSWORD, VALKEY_PASSWORD, RG_CHALLENGE_SECRET (min 16 chars)
 docker compose up -d --build
 curl -fsS http://localhost:8080/api/healthz
 ```
@@ -31,7 +31,7 @@ Topology: `Client -> RavenGuard (:8080) -> forge (:3000)`. SSH stays on forge (`
 | `deploy/ravenguard/` | Proxy config, blocklists, seccomp |
 | `Dockerfile.rootless` | Multi-stage rootless image (UID 1000) |
 
-Valkey serves Forge cache, sessions, and queues over the Redis protocol (`redis://valkey:6379/...`).
+Valkey serves Forge cache, sessions, and queues over TLS with password auth (`rediss://...`). Postgres requires TLS for all network connections (`sslmode=verify-full`). Both are secured by an internal CA issued at deploy time by the one-shot `pki-init` service; its CA key never leaves the init container. No database or cache port is published. SurrealDB is also supported as an alternative backend via `surreal://` URIs (`modules/nosql/surreal.go`). Postgres remains the primary relational database.
 
 Images: `ghcr.io/quad4-software/forge-rootless:dev|latest`, `ghcr.io/quad4-software/ravenguard:edge`.
 
@@ -59,10 +59,9 @@ Branding: theme `quad4-dark` (`web_src/css/themes/theme-quad4-dark.css`), logo m
 ## Features beyond stock Forgejo
 
 - **Theme**: charcoal + ember orange, default `quad4-dark`
-- **ALTCHA**: `CAPTCHA_TYPE=altcha`, embedded challenge at `/altcha/challenge`
 - **Sentry**: optional `[sentry]` DSN / frontend DSN (no GlitchTip in compose)
-- **Edge**: RavenGuard standalone edge (not hub `proxy` mode), forge-tuned body limits for Git HTTP/LFS
-- **Cache**: Valkey for Forge cache, sessions, and queues (`redis://valkey:6379`)
+- **Edge**: RavenGuard standalone edge (not hub `proxy` mode), forge-tuned body limits for Git HTTP/LFS and bot protection (replaces ALTCHA)
+- **Cache**: Valkey for Forge cache, sessions, and queues (`redis://valkey:6379`), SurrealDB supported via `surreal://` URIs
 - **Hardening**: `no-new-privileges`, `cap_drop: ALL`, non-root users, healthchecks, resource limits
 
 ## Upstream Forgejo
