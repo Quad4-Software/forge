@@ -1,0 +1,90 @@
+# Crow CI v6.9.0 standalone stack (https://crowci.dev)
+#
+# Crow talks to Forge over public URLs only, so this file deploys anywhere:
+# locally next to the forge stack, or as its own Coolify Docker Compose
+# resource.
+#
+#   1. In Forge create an OAuth2 application (Site Administration ->
+#      Integrations -> Applications, or user settings -> Applications):
+#      redirect URI: ${CROW_HOST}/authorize
+#   2. Set the env vars below (copy .env.example or export them).
+#   3. docker compose -f docker-compose.crow.yml up -d
+#
+# Coolify: add a Docker Compose resource with this file, assign a domain to
+# the crow service on port 8000, set the env vars, deploy.
+#
+# Security note: the agent mounts the host docker socket to run builds in
+# containers. That is host-root equivalent. Only run the agent on a host
+# meant for CI jobs and restrict who can activate repositories in Crow.
+
+name: quad4-crowci
+
+x-security: &security
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
+
+services:
+  crow:
+    image: codefloe.com/crowci/crow-server:v6.9.0@sha256:617770a1e07bfac1b69a4ad50362c8b316c5914ae244462e97fe7baa1782cab3
+    restart: unless-stopped
+    <<: *security
+    environment:
+      CROW_OPEN: ${CROW_OPEN:-true}
+      CROW_HOST: ${CROW_HOST:?}
+      CROW_FORGEJO: "true"
+      CROW_FORGEJO_URL: ${FORGEJO_URL:?}
+      CROW_FORGEJO_CLIENT: ${CROW_FORGEJO_CLIENT:?}
+      CROW_FORGEJO_SECRET: ${CROW_FORGEJO_SECRET:?}
+      CROW_AGENT_SECRET: ${CROW_AGENT_SECRET:?}
+      CROW_DATABASE_DRIVER: sqlite3
+      CROW_DATABASE_DATASOURCE: /var/lib/crow/crow.sqlite3
+      # Coolify magic: domain attaches to this service on container port 8000.
+      SERVICE_URL_CROW_8000: ${SERVICE_URL_CROW_8000:-}
+      SERVICE_FQDN_CROW: ${SERVICE_FQDN_CROW:-}
+    volumes:
+      - crow-server-data:/var/lib/crow
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    expose:
+      - "9000"
+    ports:
+      - "${CROW_HTTP_PORT:-8001}:8000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  crow-agent:
+    image: codefloe.com/crowci/crow-agent:v6.9.0@sha256:77219d1e706f16c9ec0552895823df59a132f76db7e5c92bf4529a8e7772bf1c
+    restart: unless-stopped
+    depends_on:
+      crow:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      CROW_SERVER: crow:9000
+      CROW_AGENT_SECRET: ${CROW_AGENT_SECRET:?}
+      CROW_BACKEND_DOCKER_NETWORK: ${CROW_BACKEND_DOCKER_NETWORK:-}
+    volumes:
+      - crow-agent-config:/etc/crow
+      - /var/run/docker.sock:/var/run/docker.sock
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+volumes:
+  crow-server-data:
+  crow-agent-config:
