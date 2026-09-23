@@ -1,0 +1,43 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository new migrate">
+	<div class="ui container">
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "repo.migrate.mass_result_title" .Queued .Failed}}
+		</h3>
+		<div class="ui attached segment">
+			{{template "base/alert" .}}
+			<div class="flex-list">
+				{{range .Results}}
+					<div class="flex-item">
+						<div class="flex-item-leading">
+							{{if .Error}}
+								<span class="text red">{{svg "octicon-x-circle-fill" 16}}</span>
+							{{else}}
+								<span class="text green">{{svg "octicon-check-circle-fill" 16}}</span>
+							{{end}}
+						</div>
+						<div class="flex-item-main">
+							<div class="flex-item-header">
+								<div class="flex-item-title">
+									{{if .Link}}
+										<a class="text primary name" href="{{.Link}}">{{.Name}}</a>
+									{{else}}
+										<span class="text primary name">{{.Name}}</span>
+									{{end}}
+								</div>
+								<div class="flex-item-trailing">
+									{{if .Error}}
+										<span class="text red">{{.Error}}</span>
+									{{else}}
+										<span class="text green">{{ctx.Locale.Tr "repo.migrate.mass_queued"}}</span>
+									{{end}}
+								</div>
+							</div>
+						</div>
+					</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

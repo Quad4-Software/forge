@@ -4,6 +4,17 @@
 		<h2 class="tw-mt-4">{{ctx.Locale.Tr "migrate.select.title"}}</h1>
 		{{template "repo/migrate/helper" .}}
 		<div class="migrate-entries">
+			<a class="migrate-entry tw-items-center" href="{{AppSubUrl}}/repo/migrate/mass?org={{$.Org}}&mirror={{$.Mirror}}">
+				{{svg "octicon-repo-clone" 184}}
+				<div class="content">
+					<h3>
+						{{ctx.Locale.Tr "repo.migrate.mass_title"}}
+					</h3>
+					<div class="description">
+						{{ctx.Locale.Tr "repo.migrate.mass_description"}}
+					</div>
+				</div>
+			</a>
 			{{range .Services}}
 				<a class="migrate-entry tw-items-center" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 					{{if eq .Name "github"}}

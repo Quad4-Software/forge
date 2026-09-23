@@ -1,0 +1,70 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository new migrate">
+	<div class="ui container">
+		<form class="ui form" action="{{AppSubUrl}}/repo/migrate/mass/confirm" method="post">
+			<h3 class="ui top attached header">
+				{{ctx.Locale.Tr "repo.migrate.mass_select_title" .RepoCount}}
+			</h3>
+			<div class="ui attached segment">
+				{{template "base/alert" .}}
+				<input type="hidden" name="service" value="{{.service}}">
+				<input type="hidden" name="uid" value="{{.ContextUser.ID}}">
+				<input type="hidden" name="auth_token" value="{{.auth_token}}">
+				{{if .mirror}}<input type="hidden" name="mirror" value="true">{{end}}
+				{{if .private}}<input type="hidden" name="private" value="true">{{end}}
+				{{if .lfs}}<input type="hidden" name="lfs" value="true">{{end}}
+				{{if .wiki}}<input type="hidden" name="wiki" value="true">{{end}}
+				{{if .issues}}<input type="hidden" name="issues" value="true">{{end}}
+				{{if .pull_requests}}<input type="hidden" name="pull_requests" value="true">{{end}}
+				{{if .labels}}<input type="hidden" name="labels" value="true">{{end}}
+				{{if .milestones}}<input type="hidden" name="milestones" value="true">{{end}}
+				{{if .releases}}<input type="hidden" name="releases" value="true">{{end}}
+
+				<p>{{ctx.Locale.Tr "repo.migrate.mass_select_desc" .owner .ContextUser.Name}}</p>
+
+				<div class="inline field">
+					<div class="ui checkbox">
+						<input id="mass_migrate_select_all" type="checkbox" checked>
+						<label for="mass_migrate_select_all">{{ctx.Locale.Tr "repo.migrate.mass_select_all"}}</label>
+					</div>
+				</div>
+
+				<div class="flex-list">
+					{{range .Repos}}
+						<div class="flex-item">
+							<div class="flex-item-leading">
+								<div class="ui checkbox">
+									<input class="mass-migrate-repo" type="checkbox" name="clone_addr" value="{{.CloneURL}}" {{if .Exists}}disabled{{else}}checked{{end}}>
+								</div>
+							</div>
+							<div class="flex-item-main">
+								<div class="flex-item-header">
+									<div class="flex-item-title">
+										<a class="text primary name" href="{{.HTMLURL}}">{{.Name}}</a>
+										<span>
+											{{if .Private}}<span class="ui label">{{ctx.Locale.Tr "repo.desc.private"}}</span>{{end}}
+											{{if .Fork}}<span class="ui label">{{svg "octicon-repo-forked" 14}}</span>{{end}}
+											{{if .Archived}}<span class="ui label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>{{end}}
+											{{if .Exists}}<span class="ui orange label">{{ctx.Locale.Tr "repo.migrate.mass_exists"}}</span>{{end}}
+										</span>
+									</div>
+								</div>
+								{{if .Description}}<div class="flex-item-body">{{.Description}}</div>{{end}}
+							</div>
+						</div>
+					{{end}}
+				</div>
+
+				<div class="divider"></div>
+
+				<div class="inline field">
+					<button class="ui primary button">
+						{{ctx.Locale.Tr "repo.migrate.mass_start"}}
+					</button>
+					<a class="ui button" href="{{AppSubUrl}}/repo/migrate/mass">{{ctx.Locale.Tr "cancel"}}</a>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>
+{{template "base/footer" .}}

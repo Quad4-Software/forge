@@ -90,6 +90,39 @@ func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) bindi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// MassMigrateRepoForm form for mass migrating repositories
+// this is used to interact with web ui
+type MassMigrateRepoForm struct {
+	// required: true
+	Service   structs.GitServiceType `form:"service" json:"service" binding:"Required"`
+	BaseURL   string                 `form:"base_url" json:"base_url" binding:"MaxSize(1024)"`
+	Owner     string                 `form:"owner" json:"owner" binding:"Required;MaxSize(100)"`
+	OwnerType string                 `form:"owner_type" json:"owner_type" binding:"In(auto,org,user)"`
+	AuthToken string                 `form:"auth_token" json:"auth_token"`
+	// required: true
+	UID int64 `form:"uid" json:"uid" binding:"Required"`
+
+	Mirror       bool `form:"mirror" json:"mirror"`
+	Private      bool `form:"private" json:"private"`
+	LFS          bool `form:"lfs" json:"lfs"`
+	Wiki         bool `form:"wiki" json:"wiki"`
+	Milestones   bool `form:"milestones" json:"milestones"`
+	Labels       bool `form:"labels" json:"labels"`
+	Issues       bool `form:"issues" json:"issues"`
+	PullRequests bool `form:"pull_requests" json:"pull_requests"`
+	Releases     bool `form:"releases" json:"releases"`
+
+	IncludeForks    bool `form:"include_forks" json:"include_forks"`
+	IncludeArchived bool `form:"include_archived" json:"include_archived"`
+	IncludePrivate  bool `form:"include_private" json:"include_private"`
+}
+
+// Validate validates the fields
+func (f *MassMigrateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // scpRegex matches the SCP-like addresses used by Git to access repositories over SSH.
 var scpRegex = regexp.MustCompile(`^([a-zA-Z0-9_]+)@([a-zA-Z0-9._-]+):(.*)$`)
 

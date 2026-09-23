@@ -25,6 +25,13 @@ export function initRepoMigration() {
   });
   lfs?.addEventListener('change', setLFSSettingsVisibility);
 
+  const selectAll = document.getElementById('mass_migrate_select_all');
+  selectAll?.addEventListener('change', () => {
+    for (const box of document.querySelectorAll('.mass-migrate-repo')) {
+      if (!box.disabled) box.checked = selectAll.checked;
+    }
+  });
+
   const cloneAddr = document.getElementById('clone_addr');
   cloneAddr?.addEventListener('change', () => {
     const repoName = document.getElementById('repo_name');
