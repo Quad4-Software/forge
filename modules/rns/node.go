@@ -31,6 +31,7 @@ var (
 	globalNode     *node.Node
 	globalIdentity *identity.Identity
 	gitServer      *GitServer
+	pageServer     *PageServer
 	lxmfDelivery   *LXMFDelivery
 	stopAnnounce   chan struct{}
 	initErr        error
@@ -70,6 +71,15 @@ func GitDestinationHash() string {
 		return ""
 	}
 	return gitServer.DestinationHash()
+}
+
+// PageDestinationHash returns the hex encoded nomadnetwork.node destination
+// hash that NomadNet clients browse.
+func PageDestinationHash() string {
+	if pageServer == nil {
+		return ""
+	}
+	return pageServer.DestinationHash()
 }
 
 // LXMFDeliveryHash returns the hex encoded lxmf.delivery destination hash.
@@ -140,6 +150,13 @@ func startNode(ctx context.Context) error {
 		}
 	}
 
+	if setting.RNS.ServePages {
+		pageServer, err = NewPageServer(n.Transport(), id)
+		if err != nil {
+			return fmt.Errorf("rns: create page server: %w", err)
+		}
+	}
+
 	if setting.RNS.EnableLXMF {
 		lxmfDelivery, err = NewLXMFDelivery(n.Transport(), id)
 		if err != nil {
@@ -167,6 +184,9 @@ func startNode(ctx context.Context) error {
 func announce() {
 	if gitServer != nil {
 		gitServer.Announce()
+	}
+	if pageServer != nil {
+		pageServer.Announce()
 	}
 	if lxmfDelivery != nil {
 		lxmfDelivery.Announce()

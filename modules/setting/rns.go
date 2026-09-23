@@ -26,6 +26,14 @@ var RNS = struct {
 	AnnounceInterval int `ini:"ANNOUNCE_INTERVAL"`
 	// ServeGit exposes repositories over the git.repositories destination.
 	ServeGit bool `ini:"SERVE_GIT"`
+	// ServePages exposes a NomadNet compatible node destination
+	// (nomadnetwork.node) serving repository index, tree, blob, commits and
+	// refs pages in Micron markup, backed by the same permission checks as
+	// the git destination.
+	ServePages bool `ini:"SERVE_PAGES"`
+	// NodeName is the display name announced on the NomadNet node
+	// destination and shown on the page index header.
+	NodeName string `ini:"NODE_NAME"`
 	// EnableLXMF enables the LXMF router used for verification codes,
 	// invitations and notifications.
 	EnableLXMF bool `ini:"ENABLE_LXMF"`
@@ -41,6 +49,7 @@ var RNS = struct {
 	Enabled:          true,
 	AnnounceInterval: 360,
 	ServeGit:         true,
+	ServePages:       true,
 	EnableLXMF:       true,
 	AnonymousRead:    true,
 	EmailOptional:    true,
@@ -60,6 +69,9 @@ func loadRNSFrom(rootCfg ConfigProvider) {
 	if RNS.AnnounceInterval < -1 {
 		log.Warn("Invalid rns.ANNOUNCE_INTERVAL %d, using default", RNS.AnnounceInterval)
 		RNS.AnnounceInterval = 360
+	}
+	if RNS.NodeName == "" {
+		RNS.NodeName = AppName
 	}
 	if RNS.EmailOptional && !RNS.EnableLXMF {
 		log.Warn("rns.EMAIL_OPTIONAL requires rns.ENABLE_LXMF, ignoring")

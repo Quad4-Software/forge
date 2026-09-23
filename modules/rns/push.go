@@ -44,9 +44,9 @@ func (s *GitServer) handlePush(_ string, data, _, _ []byte, remote *identity.Ide
 		return rnsgit.StatusResponse(rnsgit.ResDisallowed, "Rate limited")
 	}
 	ctx := context.Background()
-	rr, err := s.resolveRepo(ctx, remote, repoPath, perm_model.AccessModeWrite)
+	rr, err := resolveRepo(ctx, remote, repoPath, perm_model.AccessModeWrite)
 	if err != nil {
-		return s.deny(ctx, rr)
+		return deny(ctx, rr)
 	}
 	if rr.repo.IsMirror {
 		return rnsgit.StatusResponse(rnsgit.ResDisallowed, "Mirror repositories are read-only")
@@ -157,9 +157,9 @@ func (s *GitServer) handleDelete(_ string, data, _, _ []byte, remote *identity.I
 		return rnsgit.StatusResponse(rnsgit.ResInvalidReq, "Invalid request")
 	}
 	ctx := context.Background()
-	rr, err := s.resolveRepo(ctx, remote, repoPath, perm_model.AccessModeWrite)
+	rr, err := resolveRepo(ctx, remote, repoPath, perm_model.AccessModeWrite)
 	if err != nil {
-		return s.deny(ctx, rr)
+		return deny(ctx, rr)
 	}
 	if rr.repo.IsMirror || rr.repo.IsArchived {
 		return rnsgit.StatusResponse(rnsgit.ResDisallowed, "Repository is read-only")

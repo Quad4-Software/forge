@@ -97,7 +97,7 @@ type resolvedRepo struct {
 // checks that the remote identity is allowed wantMode access. A nil remote is
 // the anonymous peer and only allowed read access to public repositories when
 // rns.ANONYMOUS_READ is enabled.
-func (s *GitServer) resolveRepo(ctx context.Context, remote *identity.Identity, repoPath string, wantMode perm_model.AccessMode) (*resolvedRepo, error) {
+func resolveRepo(ctx context.Context, remote *identity.Identity, repoPath string, wantMode perm_model.AccessMode) (*resolvedRepo, error) {
 	ownerName, repoName, ok := rnsgit.ParseRepoPath(repoPath)
 	if !ok {
 		return nil, fmt.Errorf("invalid repository path")
@@ -183,7 +183,7 @@ func keyVerified(rr *resolvedRepo) bool {
 }
 
 // canRead reports whether the resolved pusher or anonymous peer may read.
-func (s *GitServer) canRead(ctx context.Context, rr *resolvedRepo) bool {
+func canRead(ctx context.Context, rr *resolvedRepo) bool {
 	if rr.pusher != nil && keyVerified(rr) {
 		perm, err := access_model.GetUserRepoPermission(ctx, rr.repo, rr.pusher)
 		if err == nil && perm.UnitAccessMode(rr.unitType) >= perm_model.AccessModeRead {
@@ -195,8 +195,8 @@ func (s *GitServer) canRead(ctx context.Context, rr *resolvedRepo) bool {
 
 // deny produces the rngit denial response: NotFound for peers without read
 // access, Disallowed for peers who can read but lack the requested mode.
-func (s *GitServer) deny(ctx context.Context, rr *resolvedRepo) []byte {
-	if rr != nil && s.canRead(ctx, rr) {
+func deny(ctx context.Context, rr *resolvedRepo) []byte {
+	if rr != nil && canRead(ctx, rr) {
 		return rnsgit.StatusResponse(rnsgit.ResDisallowed, "Not allowed")
 	}
 	return rnsgit.StatusResponse(rnsgit.ResNotFound, "Not found")
@@ -224,9 +224,9 @@ func (s *GitServer) handleList(_ string, data, _, _ []byte, remote *identity.Ide
 		wantMode = perm_model.AccessModeWrite
 	}
 	ctx := context.Background()
-	rr, err := s.resolveRepo(ctx, remote, repoPath, wantMode)
+	rr, err := resolveRepo(ctx, remote, repoPath, wantMode)
 	if err != nil {
-		return s.deny(ctx, rr)
+		return deny(ctx, rr)
 	}
 	body, err := s.git.ListRefs(rr.gitDir)
 	if err != nil {
@@ -248,9 +248,9 @@ func (s *GitServer) handleFetch(_ string, data, _, _ []byte, remote *identity.Id
 		return rnsgit.StatusResponse(rnsgit.ResDisallowed, "Rate limited")
 	}
 	ctx := context.Background()
-	rr, err := s.resolveRepo(ctx, remote, repoPath, perm_model.AccessModeRead)
+	rr, err := resolveRepo(ctx, remote, repoPath, perm_model.AccessModeRead)
 	if err != nil {
-		return s.deny(ctx, rr)
+		return deny(ctx, rr)
 	}
 
 	refsList, ok := req["refs"].([]any)
