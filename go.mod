@@ -89,7 +89,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/surrealdb/surrealdb.go v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/ulikunitz/xz v0.5.16
+	github.com/ulikunitz/xz v0.5.17
 	github.com/urfave/cli/v3 v3.9.1
 	github.com/valyala/fastjson v1.6.10
 	github.com/yohcop/openid-go v1.0.1
