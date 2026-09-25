@@ -90,7 +90,7 @@ require (
 	github.com/surrealdb/surrealdb.go v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/ulikunitz/xz v0.5.16
-	github.com/urfave/cli/v3 v3.9.1
+	github.com/urfave/cli/v3 v3.13.0
 	github.com/valyala/fastjson v1.6.10
 	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.8.6
