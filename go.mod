@@ -18,7 +18,7 @@ require (
 	connectrpc.com/connect v1.21.0
 	github.com/42wim/httpsig v1.2.4
 	github.com/42wim/sshsig v0.0.0-20250502153856-5100632e8920
-	github.com/ProtonMail/go-crypto v1.4.1
+	github.com/ProtonMail/go-crypto v1.5.0
 	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/Quad4-Software/Reticulum-Go v1.3.0
 	github.com/Quad4-Software/reticulum-go-protocols v0.0.0-20260918222301-9a8c6af8a99d
